@@ -21,3 +21,20 @@ Responsabilidades Primarias:
 3. Evaluación Técnica Rigurosa: Calcular y comparar métricas de clustering para cada modelo y configuración. Crear visualizaciones clave (gráficos de silhouette, dendrogramas, proyecciones en 2D/3D).
 
 4. Validación y Conclusión: Dirigir la discusión para elegir el modelo final basado en métricas técnicas y de negocio. Sintetizar los hallazgos.
+
+
+#########################
+# **Data & Business Understanding Lead**
+1. Contexto del Negocio:
+Propósito: Segmentación de clientes para personalizar campañas de marketing basadas en comportamiento de compra.
+Objetivo del clustering: Identificar 3 grupos clave;
+
+- Clientes de alto valor monetario (whales) -> PREMIUM
+- Clientes regulares (core)->RETENTION
+- Clientes esporádicos (swing)-> REACTIVATION
+Esto permite asignar recursos de marketing diferenciados: campañas premium para high-value (whales), retención para regulares (core), reactivación para esporádicos (swing).
+
+2. Análisis Exploratorio de Datos (EDA) InicialDataset: Datos de transacciones con columnas ['invoice', 'stockcode', 'description', 'quantity', 'invoicedate', 'price', 'customer_id', 'country'].
+
+Estado: Datos ya limpios (sin nulos/duplicados reportados).
+Se removieron de este análisis entradas sin 'customer_id' puesto que es necesario para el análisis. 
