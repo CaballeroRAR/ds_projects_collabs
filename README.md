@@ -1,2 +1,3 @@
 # ds_projects_collabs
-Data Science in collaboration
+
+Data Science projects in collaboration.

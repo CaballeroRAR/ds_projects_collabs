@@ -1,6 +1,6 @@
 ## Propuesta de Roles y Responsabilidades Primarias
 
-**ROL 1: "Data & Business Understanding Lead" (Líder de Datos y Negocio)**
+**ROL 1: "Data & Business Understanding Lead" (Líder de Datos y Negocio)** # G. Caballero
 Responsabilidades Primarias:
 
 1. Contexto del Negocio: Investigar y documentar el propósito del negocio del dataset (¿para qué se haría clustering? Ej: segmentación de clientes, detección de anomalías, categorización de productos).
