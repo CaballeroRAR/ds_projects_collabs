@@ -1,5 +1,4 @@
 import pandas as pd
-import numpy as np
 
 def normalize_column_names(df):
     """Normalize column names: lowercase and replace spaces with underscores"""
@@ -115,7 +114,7 @@ def remove_digits_unique(df, col_name):
 
 def get_abnormal_values(df, col_name, print_list=False):
     """
-    Identifies unique values in a column that do not match the patterns: ^\\d{5}$ or ^\\d{5}[a-zA-Z]+$. (Five consecutive numbers and five consecutive numbers followed by letters)
+    Identifies unique values in a column that do not match the patterns: ^\d{5}$ or ^\\d{5}[a-zA-Z]+$. (Five consecutive numbers and five consecutive numbers followed by letters)
 
     Parameters:
     -----------
@@ -136,19 +135,21 @@ def get_abnormal_values(df, col_name, print_list=False):
     
  
     # Regex 1: Exactly 5 digits
-    pattern_exact_five_digits = r"^\\d{5}$"
+    pattern_exact_five_digits = r"^\d{5}$"
     # Regex 2: 5 digits followed by one or more letters
-    pattern_five_digits_plus_letters = r"^\\d{5}[a-zA-Z]+$"
+    pattern_five_digits_plus_letters = r"^\d{5}[a-zA-Z]+$"
+
+    col_series = df[col_name]
 
     abnormal_mask = (
-        (df[col_name].str.match(pattern_exact_five_digits) == False) & 
-        (df[col_name].str.match(pattern_five_digits_plus_letters) == False)
+        (col_series.str.match(pattern_exact_five_digits) == False) & 
+        (col_series.str.match(pattern_five_digits_plus_letters) == False)
     )
+    
     
     # Extract unique values and convert to list
     unique_abnormal_values = df[abnormal_mask][col_name].unique().tolist()
     count = len(unique_abnormal_values)
-    
     
     if print_list:
         print(f"{count} abnormal values:")
