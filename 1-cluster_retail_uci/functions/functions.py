@@ -87,9 +87,10 @@ def filter_rows_starting_with(df, column_name, starting_letter, show_head=True, 
     
     return filtered_df
 
-def remove_digits_unique(df, col_name):
+def remove_and_display_unique_prefixes(df, col_name):
     """
-    Removes all numeric digits from a specific column and returns the unique values.
+    Removes digits from the column to find unique starting prefixes, 
+    then displays rows for each unique prefix found.
 
     Parameters:
     -----------
@@ -97,20 +98,24 @@ def remove_digits_unique(df, col_name):
         The input DataFrame containing the data.
     col_name : str
         The name of the column to process.
-
-    Returns:
-    --------
-    numpy.ndarray
-        An array of unique values from the specified column with all numeric digits removed.
     """
-    # Extract the specific column
+    # Extract column
     target_col = df[col_name]
     
-    # Remove all digits (0-9) using regex
-    cleaned_col = target_col.str.replace(r"\d", "", regex=True)
+    # Remove all digits (0-9) using regex to isolate prefixes
+    prefixes = target_col.str.replace(r"\d", "", regex=True)
     
-    # Return the unique values
-    return cleaned_col.unique()
+    # Get the unique values
+    unique_prefixes = prefixes.unique()
+    
+    # Iterate through the unique values and run the display logic
+    for prefix in unique_prefixes:
+        # Skip empty strings
+        if prefix:
+            print(f"Results for prefix: '{prefix}'")
+            
+            # (filter and display head)
+            display(df[df[col_name].str.startswith(prefix)].head())
 
 def get_abnormal_values(df, col_name, print_list=False):
     """
@@ -157,6 +162,24 @@ def get_abnormal_values(df, col_name, print_list=False):
     
     return unique_abnormal_values, count
 
+def display_rows_by_list(df, col_name, code_list, n=10):
+    """
+    Filters the DataFrame for values present in a list and displays the top n rows.
+
+    Parameters:
+    -----------
+    df : pandas.DataFrame
+        The input DataFrame.
+    col_name : str
+        The name of the column to filter.
+    code_list : list
+        The list of values to filter by.
+    n : int, optional
+        The number of rows to display (default is 10).
+    """
+    for code in code_list:
+        print(f"Results for {col_name}: {code}")
+        display(df[df[col_name] == code].head(n))
 
 def filter_consecutive_digits(df, col_name, amount):
     """
@@ -177,6 +200,7 @@ def filter_consecutive_digits(df, col_name, amount):
         A tuple containing:
             - pandas.Series: The boolean mask indicating which rows match.
             - pandas.DataFrame: The filtered DataFrame containing only the matching rows.
+            - int: The count of entries dropped.
     """
     
     # Dynamically create the regex pattern based on the amount parameter
@@ -187,9 +211,9 @@ def filter_consecutive_digits(df, col_name, amount):
     
     # Apply the mask to the dataframe
     transformed_df = df[mask]
+    entries_dropped = len(df) - len(transformed_df)
     
-    return transformed_df, mask
-
+    return transformed_df, mask, entries_dropped
 
 def exclude_values_by_list(df, col_name, values_to_exclude):
     """
@@ -221,3 +245,48 @@ def exclude_values_by_list(df, col_name, values_to_exclude):
     print(f"Removed {removed_count} rows where '{col_name}' was in the exclusion list.")
     
     return df_filtered
+
+def drop_na_duplicates_and_zeroes(df, col_customer='customer_id', col_price='price'):
+    """
+    Cleans the DataFrame by dropping missing customer IDs, identifying duplicates,
+    removing duplicates, removing zero-price items, and displaying statistics.
+
+    Parameters:
+    -----------
+    df : pandas.DataFrame
+        The input DataFrame to clean.
+    col_customer : str, optional
+        The name of the customer ID column (default is 'customer_id').
+    col_price : str, optional
+        The name of the price column (default is 'price').
+
+    Returns:
+    --------
+    pandas.DataFrame
+        The cleaned DataFrame.
+    """
+    
+    # Drop rows where customer ID is missing
+    df_clean = df.copy()
+    df_clean.dropna(subset=[col_customer], inplace=True)
+    
+    # 2. Print number of duplicated rows
+    print("Number of duplicated rows:", df_clean.duplicated().sum())
+    
+    # Display the duplicated rows (sorted) for inspection
+    print("Duplicated rows (sorted):")
+    display(df_clean[df_clean.duplicated(keep=False)].sort_values(by=df_clean.columns.tolist()).head())
+    
+    # Drop duplicates
+    df_clean.drop_duplicates(inplace=True)
+    print("Duplicates dropped.")
+    
+    # Display head rows from the ORIGINAL df where price is 0
+    print("Rows with price equal to 0:")
+    display(df[df[col_price] == 0].head())
+    
+    # Remove rows where price is 0
+    df_clean = df_clean[df_clean[col_price] != 0]
+    print("Rows with price equal to 0 removed.")
+        
+    return df_clean
