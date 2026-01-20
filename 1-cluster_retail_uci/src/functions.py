@@ -120,7 +120,8 @@ def remove_and_display_unique_prefixes(df, col_name):
 def get_abnormal_values(df, col_name, print_list=False):
     """
     Identifies unique values in a column that do not match the patterns: ^\d{5}$ or ^\\d{5}[a-zA-Z]+$. (Five consecutive numbers and five consecutive numbers followed by letters)
-
+    5 Consecutive digits and 5 Consecutive digits followed by letters.
+    Documentatiion of dataset do not specify this pattern (^\\d{5}[a-zA-Z]+$), but after analysis these are PROBABLY valid stock codes.
     Parameters:
     -----------
     df : pandas.DataFrame

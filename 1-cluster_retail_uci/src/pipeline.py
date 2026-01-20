@@ -37,7 +37,7 @@ def cleaning_pipeline(df):
     # 6. Remove abnormal codes
     stockcodes_abnormal, count_abnormal = get_abnormal_values(df, 'stockcode', print_list=True)
 
-    # 7 Filter out abnormal invoices ( exclude NOT 6 consecutive digits)
+    # 7 Filter out abnormal 'invoices' ( exclude NOT 6 consecutive digits)
     df, mask, entries_dropped = filter_consecutive_digits(df, 'invoice', 6) 
     print("Entries dropped:", entries_dropped)
 
