@@ -4,6 +4,16 @@ __pycache__/
 *.pyo
 *.pyd
 
+# Virtual ENV
+venv/
+env/
+ENV/
+.venv/
+
+# Environment variables
+.env
+.env.local
+
 # IDEs (VSCode, PyCharm, etc.)
 .vscode/
 .idea/
@@ -11,9 +21,9 @@ __pycache__/
 *.swo
 
 # Jupyter Notebook
-.ipynb_checkpoints
+*.ipynb_checkpoints
 
-# Pickel files
+# Pickle files
 *.pkl
 
 # OS
