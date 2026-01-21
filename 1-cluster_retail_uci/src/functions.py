@@ -1,4 +1,8 @@
+# Imports
 import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 def normalize_column_names(df):
     """Normalize column names: lowercase and replace spaces with underscores"""
@@ -28,10 +32,14 @@ def df_column_to_string(df, column_name, show_head=False):
         raise ValueError(f"'{column_name}' not in DataFrame. Available columns: {list(df.columns)}")
     
     df_copy = df.copy()
-    df_copy[column_name] = df_copy[column_name].astype(str)
     
-    print(f"'{column_name}' converted to string type.")
-    print(f"{df_copy[column_name].dtype}")
+    # Check if the colum is already a string 
+    if pd.api.types.is_string_dtype(df[column_name]):
+        print(f"'{column_name}' is string!")
+    else:
+        df_copy[column_name] = df_copy[column_name].astype(str)
+        print(f"'{column_name}' converted to string type.")
+        print(f"{df_copy[column_name].dtype}")
     
     if show_head:
         print("\nHead of converted column:")
@@ -291,3 +299,86 @@ def drop_na_duplicates_and_zeroes(df, col_customer='customer_id', col_price='pri
     print("Rows with price equal to 0 removed.")
         
     return df_clean
+
+# Feature Engineering functions
+
+def mean_encoder(df, column_name, drop_original=False):
+    """
+    Applies mean frequeny encoding to a categorial, non-ordinal feature.
+    Returns a DataFrame with a new column containing the input column frequency-mean-encoded.
+
+    Parameters:
+    -----------
+    df : pandas.DataFrame
+        The input DataFrame.
+    column_name : str
+        The name of the categorical non-ordinal column to encode.
+    drop_original : bool, default=False
+        Whether to drop the original column after encoding.
+
+    Returns:
+    --------
+    df_encoded : pandas.DataFrame
+        The DataFrame with the specified column mean-encoded.
+    freq_map : dict
+    The dictionary mapping categories to frequency values.
+    """
+    freq_map = df[column_name].value_counts(normalize=True).to_dict()
+    df_encoded = df.copy()
+    df_encoded[f'{column_name}_encoded'] = df_encoded[column_name].map(freq_map)
+
+    if drop_original:
+        df_encoded.drop(columns=[column_name], inplace=True)
+    
+    return df_encoded, freq_map
+
+def log_transform_column(df, column_name, drop_original=False):
+    """
+    Applies a logarithmic transformation to specific columns to reduce right skew.
+    Uses np.log1p (log(1+x)) to handle zero values.
+
+    Parameters:
+    -----------
+    df : pandas.DataFrame
+        The input DataFrame.
+    column_name : str or list of str
+        The name of the column(s) to transform.
+    drop_original : bool, default=False
+        If True, drops the original column(s) from the returned DataFrame.
+
+    Returns:
+    --------
+    df_transformed : pandas.DataFrame
+        DataFrame with the transformed column(s) (and originals removed if requested).
+    """
+    # df.columns = df.columns.str.strip()
+    df_transformed = df.copy()
+    
+    # Normalize input to a list if it's a single string
+    columns_to_transform = [column_name] if isinstance(column_name, str) else column_name
+    
+    for col in columns_to_transform:
+        # Check if column exists
+        if col not in df_transformed.columns:
+            raise ValueError(f"Column '{col}' not found in DataFrame.")
+
+        # Apply transformation
+        df_transformed[f'{col}_log'] = np.log1p(df_transformed[col])
+        
+        # Drop original column if requested
+        if drop_original:
+            df_transformed.drop(columns=[col], inplace=True)
+    
+    return df_transformed
+
+def plot_outlier_density(df, column_name): # To evaluate if the log transformation will help to KMeans clustering
+    plt.figure(figsize=(10, 6))
+    
+    sns.boxplot(x=df[column_name], color='lightblue', width=0.5)
+    
+    # Add Stripplot (Jitter) to see individual points
+    sns.stripplot(x=df[column_name], color='red', alpha=0.3, size=4, jitter=True)
+    
+    plt.title(f'Density of Outliers: {column_name}')
+    plt.xlabel(column_name)
+    plt.show()
