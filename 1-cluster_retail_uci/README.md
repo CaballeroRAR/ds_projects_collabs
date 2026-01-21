@@ -3,11 +3,22 @@
 # Dataset Overview: Online Retail II
 
 **Source:** [UCI Machine Learning Repository](https://archive.ics.uci.edu/dataset/502/online+retail+ii)  
+###
 
-## 1. Description
+## 1. **Busisness Context**
+
+### 1.a Description
 This dataset contains all transactions occurring for a UK-based and registered non-store online retail between **01/12/2009** and **09/12/2011**. The company primarily sells unique all-occasion gifts, and many customers are wholesalers.
 
-## 2. Structure & Format
+### 1.b Purpose
+This analysis goal is to: cluster clients succesfully, leave a ready to use cleaning process for future datasets, and provide insights for marketing strategies.
+The delivery, description of the clusters based on RFM, a clear explanation of the cleaning process, a ready-to-use model for future predictions.
+Optional: A interactive dashboard that allows to explore the clusters.
+###
+
+## 2. **EDA**
+
+### 2.a Structure & Format
 *   **Type:** Multivariate, Time-Series.
 *   **Attribute Type:** Categorical, Integer, Real.
 *   **Format:** 2 Excel files (.xlsx).
@@ -15,31 +26,12 @@ This dataset contains all transactions occurring for a UK-based and registered n
     *   `Year 2010-2011`
 *   **Missing Values:** Yes (specifically in CustomerID).
 
-## 3. Features (Variables)
-The dataset consists of 8 columns:
-
-| Column Name | Type | Description |
-| :--- | :--- | :--- |
-| **Invoice** | String | A 6-digit integral number uniquely assigned to each transaction. If this code starts with the letter 'c', it indicates a cancellation. |
-| **StockCode** | String | A 5-digit integral number uniquely assigned to each distinct product. |
-| **Description** | String | Product (item) name. |
-| **Quantity** | Integer | The quantities of each product (item) per transaction. |
-| **InvoiceDate** | DateTime | The day and time when a transaction was generated. |
-| **UnitPrice** | Float | Product price per unit in sterling (£). |
-| **CustomerID** | Float | A 5-digit integral number uniquely assigned to each customer. |
-| **Country** | String | The name of the country where each customer resides. |
-
-## 4. Key Characteristics
+### 2.b Key Characteristics
 *   **Volume:** The dataset contains approximately 1 million records (541,909 rows in 2009-10; 525,461 rows in 2010-11).
-*   **Imbalance:** The dataset is heavily imbalanced, as the majority of transactions originate from the United Kingdom.
-*   **Noise:** It contains cancelled transactions (indicated by Invoice numbers starting with 'C') and some null values that need to be cleaned for analysis.
+*   **Imbalance:** The dataset is heavily imbalanced, as the majority of transactions originate from the United Kingdom. There are extreme outliers in total sales per client.
+*   **Noise:** It contains multiple out-of-scope transactions (for example: Invoice numbers that are cancellations, other sort of balance adjustments, and abnormal stock codes) and some null values that need to be cleaned for analysis. More details in the notebook.
 
-## 
-Here is the updated section including your data quality findings and anomaly analysis. You can append this directly to the previous overview or place it under a "Data Analysis & Cleaning Notes" section in your `README.md`.
-
-***
-
-## 5. Data Quality & Anomalies (Findings)
+### 2.c Data Quality & Anomalies (Findings)
 
 ### Missing Values & Dimensionality
 *   **Total Entries:** `541,910`
@@ -78,3 +70,24 @@ Several non-standard stock codes were found that do not represent standard retai
  'DCGS0004', 'DCGS0073', 'DCGS0071', 'DCGS0066P', 'DCGS0068', 'DCGS0067', 
  'B', 'CRUK']
 ```
+
+###
+
+## 3. **Feature Engineering**
+
+## 3.a Features (Variables)
+The dataset consists of 8 columns:
+
+| Column Name | Type | Description |
+| :--- | :--- | :--- |
+| **Invoice** | String | A 6-digit integral number uniquely assigned to each transaction. If this code starts with the letter 'c', it indicates a cancellation. |
+| **StockCode** | String | A 5-digit integral number uniquely assigned to each distinct product. Added 5 consecutive digits + letter to this logic after EDA |
+| **Description** | String | Product (item) name. |
+| **Quantity** | Integer | The quantities of each product (item) per transaction. |
+| **InvoiceDate** | DateTime | The day and time when a transaction was generated. |
+| **UnitPrice** | Float | Product price per unit in sterling (£). |
+| **CustomerID** | Integer | A 5-digit float number uniquely assigned to each customer. (Changed to integer) |
+| **Country** | String | The name of the country where each customer resides. |
+
+***
+
