@@ -76,7 +76,7 @@ Several non-standard stock codes were found that do not represent standard retai
 ## 3. **Feature Engineering**
 
 ## 3.a Features (Variables)
-The dataset consists of 8 columns:
+The clean dataset consists of 8 columns:
 
 | Column Name | Type | Description |
 | :--- | :--- | :--- |
