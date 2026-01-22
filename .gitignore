@@ -15,10 +15,14 @@ ENV/
 .env.local
 
 # IDEs (VSCode, PyCharm, etc.)
-.vscode/
 .idea/
 *.swp
 *.swo
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
 
 # Jupyter Notebook
 *.ipynb_checkpoints
@@ -29,3 +33,5 @@ ENV/
 # OS
 .DS_Store
 Thumbs.db
+
+pyrightconfig.json
