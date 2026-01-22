@@ -2,11 +2,11 @@ import pandas as pd
 import sys
 import os
 
-project_root = os.path.abspath(os.path.join(os.getcwd(), '..', '..'))
-path_to_functions = os.path.join(project_root, '1-cluster_retail_uci', 'src')
-sys.path.append(path_to_functions)
+# project_root = os.path.abspath(os.path.join(os.getcwd(), '..', '..'))
+# path_to_functions = os.path.join(project_root, '1-cluster_retail_uci', 'src')
+# sys.path.append(path_to_functions)
 
-from functions import (
+from .functions import (
     normalize_column_names,
     df_column_to_string,
     filter_rows_starting_with,
