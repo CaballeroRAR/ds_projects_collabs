@@ -372,6 +372,8 @@ def log_transform_column(df, column_name, drop_original=False):
     return df_transformed
 
 def plot_outlier_density(df, column_name): # To evaluate if the log transformation will help to KMeans clustering
+    import matplotlib.pyplot as plt
+    import seaborn as sns
     plt.figure(figsize=(10, 6))
     
     sns.boxplot(x=df[column_name], color='lightblue', width=0.5)
