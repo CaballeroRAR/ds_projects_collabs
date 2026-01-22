@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.preprocessing import StandardScaler
 
 def normalize_column_names(df):
     """Normalize column names: lowercase and replace spaces with underscores"""
@@ -384,3 +385,83 @@ def plot_outlier_density(df, column_name): # To evaluate if the log transformati
     plt.title(f'Density of Outliers: {column_name}')
     plt.xlabel(column_name)
     plt.show()
+
+def set_column_as_index(df, column_name, new_order=None):
+    """
+    Converts a specified column into the index, drops the original column,
+    and reorders the remaining columns.
+
+    Parameters:
+    -----------
+    df : pandas.DataFrame
+        The input DataFrame.
+    column_name : str
+        The name of the column to convert to the index.
+    new_order : list of str, optional
+        The desired order of the remaining columns.
+        If None, keeps the original order of the remaining columns.
+
+    Returns:
+    --------
+    df_ordered : pandas.DataFrame
+        DataFrame with the new index and reordered columns.
+    """
+    # Check if column exists
+    if column_name not in df.columns:
+        raise ValueError(f"Column '{column_name}' not found in DataFrame.")
+
+    # Set the index (drop=True removes the column from the data values)
+    df_indexed = df.set_index(column_name, drop=True)
+
+    # Column reordering
+    if new_order is not None:
+        # Verify all requested columns exist
+        missing_cols = [col for col in new_order if col not in df_indexed.columns]
+        if missing_cols:
+            raise ValueError(f"Columns not found in DataFrame: {missing_cols}")
+        
+        # Reorder
+        df_ordered = df_indexed[new_order]
+    else:
+        # Keep original order if no new_order is provided
+        df_ordered = df_indexed
+    df_ordered.index.name = None
+    
+    return df_ordered
+
+# Scaling functions
+
+def apply_standard_scaling(df, columns=None):
+    """
+    Initializes and applies StandardScaler to specific columns.
+    
+    Parameters:
+    -----------
+    df : pandas.DataFrame
+        The input DataFrame.
+    columns : list or None, default=None
+        List of column names to scale. If None, scales all numeric columns.
+        
+    Returns:
+    --------
+    df_scaled : pandas.DataFrame
+        DataFrame with scaled values.
+    scaler : StandardScaler object
+        The fitted scaler (save this to inverse_transform later).
+    """
+    
+    scaler = StandardScaler()
+    
+    # Select columns
+    if columns is None:
+        columns_to_scale = df.select_dtypes(include=['int64', 'float64']).columns
+    else:
+        columns_to_scale = columns
+        
+    # Fit and Transform
+    scaled_data = scaler.fit_transform(df[columns_to_scale])
+    
+    # Create DataFrame (to preserve index and column names)
+    df_scaled = pd.DataFrame(scaled_data, index=df.index, columns=columns_to_scale)
+    
+    return df_scaled, scaler # to inverse_transform later
