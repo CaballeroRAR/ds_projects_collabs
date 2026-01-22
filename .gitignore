@@ -34,4 +34,7 @@ ENV/
 .DS_Store
 Thumbs.db
 
+# Image Outputs Folder
+graph_img/
+
 pyrightconfig.json
