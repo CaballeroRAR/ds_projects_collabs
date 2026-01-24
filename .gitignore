@@ -30,6 +30,10 @@ ENV/
 # Pickle files
 *.pkl
 
+# Excel files
+*.xlsx
+*.xls
+
 # OS
 .DS_Store
 Thumbs.db
