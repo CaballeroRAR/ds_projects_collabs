@@ -1,7 +1,8 @@
 import matplotlib.pyplot as plt
+import seaborn as sns
 import os
 
-def plot_3d_clusters(df, model, cols_to_plot, save_path='graph_img', filename='3d_clusters_plot.png', view=(33, 5)):
+def plot_3d_clusters(df, model, cols_to_plot, save_path='graph_img', filename='3d_clusters_plot.png', view=(33, 120)):
     """
     Plots a 3D scatter plot of data points colored by cluster, along with centroids.
     Reads 'n' number of columns to plot on the axes.
@@ -92,9 +93,9 @@ def plot_3d_clusters(df, model, cols_to_plot, save_path='graph_img', filename='3
     
     plt.show()
 
-import matplotlib.pyplot as plt
-import pandas as pd
+
 import os
+import matplotlib.pyplot as plt
 
 def visualize_pca(df_pca, df_cluster, kmeans_model, pca_model, save_path='graph_img', filename='pca_clusters_visualization.png'):
     """
@@ -142,19 +143,28 @@ def visualize_pca(df_pca, df_cluster, kmeans_model, pca_model, save_path='graph_
         label='Centroids',
         zorder=10
     )
+
+    norm = scatter.norm
     
-    # Create Custom Legend
-    legend_elements = [plt.Line2D([0], [0], marker='o', color='w', 
-                          label=f'Cluster {int(c)}',
-                          markerfacecolor=cmap(c / len(unique_clusters)), 
-                          markersize=10) for c in unique_clusters]
+    legend_elements = []
+    for c in unique_clusters:
+        color = cmap(norm(c))
+        
+        legend_elements.append(
+            plt.Line2D([0], [0], marker='o', color='w', 
+                       label=f'Cluster {int(c)}',
+                       markerfacecolor=color, 
+                       markersize=10)
+        )
     
     # Add the Centroid to the legend
-    legend_elements.append(plt.Line2D([0], [0], marker='X', color='w', 
-                          label='Centroids',
-                          markerfacecolor='red', 
-                          markeredgecolor='black', 
-                          markersize=12))
+    legend_elements.append(
+        plt.Line2D([0], [0], marker='X', color='w', 
+                   label='Centroids',
+                   markerfacecolor='red', 
+                   markeredgecolor='black', 
+                   markersize=12)
+    )
 
     plt.legend(handles=legend_elements, loc='upper right', title="Clusters")
 
@@ -183,22 +193,109 @@ def describe_clusters(df_cluster, feature_columns):
     if 'cluster' not in df_cluster.columns:
         raise ValueError("DataFrame must contain a 'cluster' column.")
     
-    # 1. Filter the list to remove 'cluster' and any non-existent columns
     valid_features = [col for col in feature_columns if col in df_cluster.columns and col != 'cluster']
     
     if not valid_features:
         raise ValueError("No valid feature columns found to describe.")
 
-    # 2. Create aggregation dictionary only for valid features
+    # aggregation dictionary only for valid features
     agg_dict = {col: 'mean' for col in valid_features}
     
-    # 3. Group by cluster
+    # Group by cluster
     description = df_cluster.groupby('cluster').agg(agg_dict)
     
-    # 4. Add the count of customers separately (safer method)
+    # Add the count of customers separately (safer method)
     description['n_customers'] = df_cluster['cluster'].value_counts()
     
-    # 5. Round values
+    # Round values
     description = description.round(2)
     
     return description
+
+# Cluster analysis visualization function
+
+def plot_rfm_boxplots(df, save_path='graph_img', filename='rfm_boxplots.png'):
+    """
+    Plots box plots for Sale Value, Frequency, and Recency per cluster.
+    Applies Log scale to monetary/frequency features for better visibility.
+    """
+    # Ensure cluster is treated as a category for better ordering
+    df_plot = df.copy()
+    df_plot['cluster'] = df_plot['cluster'].astype('category')
+
+    # Setup the figure layout (3 rows, 1 column)
+    fig, axes = plt.subplots(3, 1, figsize=(12, 14))
+    
+    # Color palette to match the clusters (consistent with previous plots)
+    palette = sns.color_palette("plasma", n_colors=len(df_plot['cluster'].unique()))
+
+    # Sale Value
+    sns.boxplot(
+        data=df_plot, 
+        x='cluster', 
+        y='sale_value',
+        legend=False,
+        hue='cluster', 
+        ax=axes[0], 
+        palette=palette,
+        showfliers=False 
+    )
+    # Global mean
+    global_mean_sale = df_plot['sale_value'].mean()
+
+    axes[0].axhline(global_mean_sale, color='red', linestyle='--', linewidth=1.5, label='Global Mean')
+    axes[0].set_title('Distribution of Sale Value by Cluster', fontsize=14)
+    axes[0].set_ylabel('Sale Value (Log Scale)', fontsize=12)
+    axes[0].set_yscale('log')
+    axes[0].grid(True, linestyle='--', alpha=0.3)
+    axes[0].set_facecolor((0.9, 0.9, 0.9, 1.0))
+    
+
+    # Frequency 
+    sns.boxplot(
+        data=df_plot, 
+        x='cluster', 
+        y='frequency', 
+        legend=False,
+        hue='cluster', 
+        ax=axes[1], 
+        palette=palette,
+        showfliers=False
+    )
+    global_mean_freq = df_plot['frequency'].mean()
+    axes[1].axhline(global_mean_freq, color='red', linestyle='--', linewidth=1.5, label='Global Mean')
+    axes[1].set_title('Distribution of Frequency by Cluster', fontsize=14)
+    axes[1].set_ylabel('Frequency (Log Scale)', fontsize=12)
+    axes[1].set_yscale('log')
+    axes[1].grid(True, linestyle='--', alpha=0.3)
+    axes[1].set_facecolor((0.9, 0.9, 0.9, 1.0))
+
+    # Recency Days
+    sns.boxplot(
+        data=df_plot, 
+        x='cluster', 
+        y='recency_days',
+        legend=False,
+        hue='cluster',  
+        ax=axes[2], 
+        palette=palette,
+        showfliers=False
+    )
+    global_mean_recency = df_plot['recency_days'].mean()
+    axes[2].axhline(global_mean_recency, color='red', linestyle='--', linewidth=1.5, label='Global Mean')
+    axes[2].set_title('Distribution of Recency (Days) by Cluster', fontsize=14)
+    axes[2].set_ylabel('Recency Days', fontsize=12)
+    axes[2].grid(True, linestyle='--', alpha=0.3)
+    axes[2].set_facecolor((0.9, 0.9, 0.9, 1.0))
+    # Overall Labeling
+    plt.suptitle('RFM Distribution Analysis per Cluster', fontsize=16, y=1.01)
+    plt.tight_layout()
+
+    # Save
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+    full_path = os.path.join(save_path, filename)
+    plt.savefig(full_path, dpi=300, bbox_inches='tight')
+    print(f"Saved Boxplots to: {full_path}")
+    
+    plt.show()
