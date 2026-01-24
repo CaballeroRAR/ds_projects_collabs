@@ -5,15 +5,35 @@
 **Source:** [UCI Machine Learning Repository](https://archive.ics.uci.edu/dataset/502/online+retail+ii)  
 ###
 
-## 1. **Busisness Context**
+## 1. **Business Context**
 
 ### 1.a Description
 This dataset contains all transactions occurring for a UK-based and registered non-store online retail between **01/12/2009** and **09/12/2011**. The company primarily sells unique all-occasion gifts, and many customers are wholesalers.
 
 ### 1.b Purpose
-This analysis goal is to: cluster clients succesfully, leave a ready to use cleaning process for future datasets, and provide insights for marketing strategies.
+This analysis goal is to: cluster clients successfully, leave a ready to use cleaning process for future datasets, and provide insights for marketing strategies.
 The delivery, description of the clusters based on RFM, a clear explanation of the cleaning process, a ready-to-use model for future predictions.
 Optional: A interactive dashboard that allows to explore the clusters.
+
+### 1.c Project Structure
+```
+1-cluster_retail_uci/
+├── src/
+│   ├── __init__.py
+│   ├── pipeline.py          # Main cleaning pipeline
+│   ├── functions.py         # Utility functions
+│   ├── k_means_function.py  # Clustering functions
+│   ├── viz_functions.py     # Visualization functions
+│   ├── elbow_method.py      # Cluster optimization
+│   ├── plot_save.py         # Plot utilities
+│   └── notebook_pipeline_test.ipynb  # Pipeline testing
+├── notebook/
+│   ├── cluster_retail.ipynb  # Main analysis
+│   └── df_2010-2011.pkl     # Cleaned data
+├── dataset/                 # Raw data files
+├── pyrightconfig.json       # Type checking configuration
+└── README.md
+```
 ###
 
 ## 2. **EDA**

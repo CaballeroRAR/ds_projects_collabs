@@ -74,16 +74,21 @@ End-to-end data engineering and unsupervised learning project focused on custome
 ## Project Structure
 ```
 1-cluster_retail_uci/
-├───dataset
-│   └───online_retail_II.xlsx (or .csv)
-├───functions
-│   ├───__init__.py
-│   ├───pipeline.py
-│   └───functions.py
-├───notebook
-│   ├───cluster_retail.ipynb
-│   └───df_2010-2011.pkl
-└───README.md
+├── src/
+│   ├── __init__.py
+│   ├── pipeline.py          # Main cleaning pipeline
+│   ├── functions.py         # Utility functions
+│   ├── k_means_function.py  # Clustering functions
+│   ├── viz_functions.py     # Visualization functions
+│   ├── elbow_method.py      # Cluster optimization
+│   ├── plot_save.py         # Plot utilities
+│   └── notebook_pipeline_test.ipynb  # Pipeline testing
+├── notebook/
+│   ├── cluster_retail.ipynb  # Main analysis
+│   └── df_2010-2011.pkl     # Cleaned data
+├── dataset/                 # Raw data files
+├── pyrightconfig.json       # Type checking configuration
+└── README.md
 ```
 
 ## Deliverables
