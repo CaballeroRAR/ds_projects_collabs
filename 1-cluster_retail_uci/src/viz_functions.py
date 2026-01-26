@@ -3,56 +3,115 @@ import seaborn as sns
 import plotly.express as px
 import os
 
-def plot_3d_clusters(df, model, cols_to_plot, save_path='graph_img', filename='3d_clusters_plot.png', view=(33, 120)):
+def plot_3d_preview(df, palette='plasma', elev=25, azim=45, title='3D Distribution of RFM Data (Pre-Clustering)'):
     """
-    Plots a 3D scatter plot of data points colored by cluster, along with centroids.
-    Reads 'n' number of columns to plot on the axes.
-
+    Plots a 3D scatter plot of RFM data (log scale assumed for sales/freq).
+    
     Parameters:
     -----------
     df : pandas.DataFrame
-        DataFrame containing the features and a 'cluster' column.
-    model : KMeans model object
-        The fitted K-Means model containing the centroids.
-    cols_to_plot : list of str
-        The specific 3 columns to plot on X, Y, and Z axes (e.g., ['sale_value_log', 'frequency_log', 'recency_days']).
-    save_path : str, default='graph_img'
-        Folder path to save the image.
-    filename : str, default='3d_clusters_plot.png'
-        Name of the file to save.
-    view : tuple (elev, azim), default=(33, 5)
-        Initial camera angle for the 3D plot.
+        DataFrame containing 'sale_value_log', 'frequency_log', and 'recency_days'.
+    palette : str, default='plasma'
+        Colormap name to use for the scatter points.
+    elev : int, default=25
+        Elevation angle for the camera view.
+    azim : int, default=45
+        Azimuthal angle for the camera view.
+    title : str, default='3D Distribution of RFM Data (Pre-Clustering)'
+        Title for the plot.
+        
+    Returns:
+    --------
+    matplotlib.figure.Figure
+        The figure object for saving or display.
     """
-    
-    if 'cluster' not in df.columns:
-        raise ValueError("DataFrame must contain a 'cluster' column.")
-    
-    # Ensure exactly 3 columns are provided for 3D plot
-    if len(cols_to_plot) != 3:
-        raise ValueError(f"Exactly 3 columns are required for a 3D plot. You provided: {len(cols_to_plot)}")
-
-    # Extract columns
-    x_col, y_col, z_col = cols_to_plot
-    cluster_labels = df['cluster']
-
-
     fig = plt.figure(figsize=(14, 10))
     ax = fig.add_subplot(111, projection='3d')
 
     scatter = ax.scatter(
-        df[x_col],
-        df[y_col],
-        df[z_col],
-        c=cluster_labels,       # Color by Cluster assignment
-        cmap='plasma',                  
-        s=40,                           
-        alpha=0.05,                      
-        edgecolors='k',                 
+        df['sale_value_log'],
+        df['frequency_log'],
+        df['recency_days'],
+        c=df['frequency_log'],  # Color by Frequency to see depth
+        cmap=palette,
+        s=40,
+        alpha=0.7,
+        edgecolors='k',
         linewidth=0.3
     )
 
+    # Shows the scale for the frequency coloring
+    cbar = fig.colorbar(scatter, ax=ax, pad=0.1)
+    cbar.set_label('Frequency (Log)', rotation=270, labelpad=15)
 
-    centroids = model.cluster_centers_
+    ax.set_xlabel('Monetary Value (Log)', fontsize=12)
+    ax.set_ylabel('Frequency (Log)', fontsize=12)
+    ax.set_zlabel('Recency (Days)', fontsize=12)
+    
+    # Use the provided title argument
+    ax.set_title(title, fontsize=16, pad=20)
+
+    ax.view_init(elev=elev, azim=azim)
+
+    ax.grid(True, linestyle='--', alpha=0.4)
+    ax.xaxis.pane.fill = False
+    ax.yaxis.pane.fill = False
+    ax.zaxis.pane.fill = False
+
+    plt.tight_layout()
+    
+    return fig
+
+def plot_3d_with_cluster(df_cluster, kmeans_model, cols_to_plot, palette='plasma', elev=25, azim=90, title='3D Cluster Distribution with Centroids'):
+    """
+    Visualizes clusters in 3D using the provided columns and plots centroids.
+    
+    Parameters:
+    -----------
+    df_cluster : pandas.DataFrame
+        DataFrame containing the features and a 'cluster' column.
+    kmeans_model : sklearn.cluster.KMeans
+        The fitted KMeans model object containing the centroids.
+    cols_to_plot : list of str
+        The 3 columns to plot [X, Y, Z].
+    palette : str, default='plasma'
+        Colormap for the clusters.
+    elev : int, default=25
+        Elevation angle for the view.
+    azim : int, default=70   # <--- UPDATED from 45 to 70 to match code
+        Azimuthal angle for the view.
+    title : str
+        Title for the plot.
+        
+    Returns:
+    --------
+    matplotlib.figure.Figure
+        The figure object.
+    """
+    plt.close('all')  # Close previous plots
+    
+    # Extract columns
+    x_col, y_col, z_col = cols_to_plot
+    cluster_labels = df_cluster['cluster']
+
+    fig = plt.figure(figsize=(14, 10))
+    ax = fig.add_subplot(111, projection='3d')
+
+    # Plot Data Points
+    scatter = ax.scatter(
+        df_cluster[x_col],
+        df_cluster[y_col],
+        df_cluster[z_col],
+        c=cluster_labels,       # Color by Cluster assignment
+        cmap=palette,
+        s=40,
+        alpha=0.05,              # High transparency to see density
+        edgecolors='k',
+        linewidth=0.3
+    )
+
+    # Plot Centroids
+    centroids = kmeans_model.cluster_centers_
     
     ax.scatter(
         centroids[:, 0], 
@@ -67,36 +126,24 @@ def plot_3d_clusters(df, model, cols_to_plot, save_path='graph_img', filename='3
         zorder=10
     )
 
-
-    ax.legend(loc='upper right')
-    
-    # Format labels for display (replace underscores with spaces)
     ax.set_xlabel(x_col.replace('_', ' ').title(), fontsize=12)
     ax.set_ylabel(y_col.replace('_', ' ').title(), fontsize=12)
     ax.set_zlabel(z_col.replace('_', ' ').title(), fontsize=12)
     
-    ax.set_title('3D Distribution of Clusters with Centroids', fontsize=16, pad=20)
-    ax.view_init(elev=view[0], azim=view[1])
+    ax.set_title(title, fontsize=16, pad=20)
+    ax.view_init(elev=elev, azim=azim)
 
     ax.grid(True, linestyle='--', alpha=.1)
     ax.xaxis.pane.fill = False
     ax.yaxis.pane.fill = False
     ax.zaxis.pane.fill = False
+    
+    # Add Legend
+    ax.legend(loc='upper right')
 
     plt.tight_layout()
     
-
-    if not os.path.exists(save_path):
-        os.makedirs(save_path)
-    full_path = os.path.join(save_path, filename)
-    fig.savefig(full_path, dpi=300, bbox_inches='tight')
-    print(f"Image saved to: {full_path}")
-    
-    plt.show()
-
-
-import os
-import matplotlib.pyplot as plt
+    return fig
 
 def visualize_pca(df_pca, df_cluster, kmeans_model, pca_model, save_path='graph_img', filename='pca_clusters_visualization.png'):
     """
@@ -231,7 +278,8 @@ def plot_rfm_boxplots(df, save_path='graph_img', filename='rfm_boxplots.png'):
         1: '#4b7ccc',
         2: '#E6C30C',
         3: '#858d99',
-        0: '#cc5948'
+        0: '#cc5948',
+        4: '#44cc78'  # Added color for Cluster 4 if exists
     }
 
     # Sort the clusters (0, 1, 2, 3) so the legend and x-axis are ordered correctly
@@ -406,3 +454,73 @@ def plot_cluster_means_comparison(df, save_path='graph_img', filename='cluster_m
     fig_val.show()
     fig_freq.show()
     fig_rec.show()
+
+def plot_rfm_distributions(df, columns, colors, hist_title='Distribution of RFM Features', box_title='RFM Features - Outlier Detection'):
+    """
+    Creates two plots: Histograms and Boxplots for the specified columns.
+
+    Parameters:
+    -----------
+    df : pandas.DataFrame
+        The dataframe containing the data.
+    columns : list of str
+        The names of the columns to plot (e.g., ['recency_days', 'frequency', 'sale_value']).
+    colors : list of str
+        Hex codes for the colors to use for each column (must be same length as columns).
+    hist_title : str
+        Title for the histogram figure.
+    box_title : str
+        Title for the boxplot figure.
+
+    Returns:
+    --------
+    fig_hist : matplotlib.figure.Figure
+        The figure object for the histograms.
+    fig_box : matplotlib.figure.Figure
+        The figure object for the boxplots.
+    """
+    
+    # --- Histograms ---
+    fig_hist, axes_hist = plt.subplots(1, len(columns), figsize=(6 * len(columns), 5))
+    fig_hist.suptitle(hist_title, fontsize=16, fontweight='bold', y=1.02)
+    
+    if len(columns) == 1:
+        axes_hist = [axes_hist]
+
+    for i, col in enumerate(columns):
+        sns.histplot(
+            df[col], 
+            kde=True, 
+            color=colors[i], 
+            edgecolor='white', 
+            alpha=0.8, 
+            ax=axes_hist[i]
+        )
+        axes_hist[i].set_title(f'{col.replace("_", " ").title()} Distribution', fontweight='bold')
+        axes_hist[i].set_xlabel(col.replace("_", " ").title())
+        axes_hist[i].set_ylabel('Count')
+        axes_hist[i].grid(True, linestyle='--', alpha=0.3)
+
+    plt.tight_layout()
+
+    # --- Boxplots ---
+    fig_box, axes_box = plt.subplots(1, len(columns), figsize=(6 * len(columns), 5), constrained_layout=True)
+    fig_box.suptitle(box_title, fontsize=16, fontweight='bold', y=1.05)
+
+    if len(columns) == 1:
+        axes_box = [axes_box]
+
+    for i, col in enumerate(columns):
+        sns.boxplot(
+            y=df[col], 
+            ax=axes_box[i], 
+            color=colors[i], 
+            width=0.5, 
+            linewidth=2, 
+            boxprops={'alpha': 0.8}
+        )
+        axes_box[i].set_title(f'{col.replace("_", " ").title()} Distribution', fontsize=14, fontweight='bold')
+        axes_box[i].set_ylabel(col.replace("_", " ").title(), fontsize=12)
+        axes_box[i].grid(True, linestyle='--', alpha=0.4)
+
+    return fig_hist, fig_box

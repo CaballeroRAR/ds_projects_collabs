@@ -372,18 +372,48 @@ def log_transform_column(df, column_name, drop_original=False):
     
     return df_transformed
 
-def plot_outlier_density(df, column_name): # To evaluate if the log transformation will help to KMeans clustering
-    import matplotlib.pyplot as plt
-    import seaborn as sns
+def plot_outlier_density(df, column_name):
+    """
+    Evaluates outlier density using a combined Boxplot, Violin plot, and Stripplot.
+    Helps visualize if log transformation will help KMeans clustering.
+    
+    Parameters:
+    -----------
+    df : pandas.DataFrame
+        The dataframe containing the data.
+    column_name : str
+        The name of the column to analyze.
+    """
     plt.figure(figsize=(10, 6))
     
-    sns.boxplot(x=df[column_name], color='lightblue', width=0.5)
+    ax = plt.gca()
+    ax.set_facecolor((0.9, 0.9, 0.9, 0.8)) # Smoke grey with 0.8 alpha
+
+    # Violin Plot
+    sns.violinplot(y=df[column_name], color='#6D8EAD', alpha=0.8, inner=None, cut=0, linewidth=0)
     
-    # Add Stripplot (Jitter) to see individual points
-    sns.stripplot(x=df[column_name], color='red', alpha=0.3, size=4, jitter=True)
+    # Boxplot
+    sns.boxplot(y=df[column_name], color='white', width=0.3, 
+                boxprops={'alpha': 1.0, 'color': '#4b7ccc'}, 
+                whiskerprops={'color': 'black'}, 
+                capprops={'color': 'black'},
+                medianprops={'color': 'black', 'linewidth': 2},
+                label='Quartiles') # Label for legend
     
-    plt.title(f'Density of Outliers: {column_name}')
-    plt.xlabel(column_name)
+    # Stripplot
+    sns.stripplot(y=df[column_name], color='#cc5948', alpha=0.8, size=3, jitter=True, linewidth=0, label='Individual Points')
+
+    # Styling
+    plt.title(f'Outlier Density Analysis: {column_name}', fontsize=14, fontweight='bold')
+    plt.ylabel(column_name.replace('_', ' ').title(), fontsize=12)
+    plt.xlabel('Density / Value', fontsize=12)
+    plt.grid(True, linestyle='--', alpha=1)
+    
+    # --- Legend ---
+    # Add a custom legend for the visual elements
+    plt.legend(loc='upper right', fontsize=10)
+    
+    plt.tight_layout()
     plt.show()
 
 def set_column_as_index(df, column_name, new_order=None):
@@ -465,3 +495,117 @@ def apply_standard_scaling(df, columns=None):
     df_scaled = pd.DataFrame(scaled_data, index=df.index, columns=columns_to_scale)
     
     return df_scaled, scaler # to inverse_transform later
+
+def convert_column_to_numeric(df, column_name, show_head=False, dtype='int32'):
+    """
+    Convert a specific column to a specific numeric type, coercing errors to NaN.
+    
+    Parameters:
+    -----------
+    df : pandas.DataFrame
+        The input DataFrame
+    column_name : str
+        Name of the column to convert
+    show_head : bool, default=False
+        Whether to display the head of the converted column
+    dtype : str or type, default='int32'
+        The target numeric data type (e.g., 'int64', 'float64', 'int32').
+    
+    Returns:
+    --------
+    pandas.DataFrame
+        DataFrame with the column converted to numeric
+    """
+    if column_name not in df.columns:
+        raise ValueError(f"'{column_name}' not in DataFrame. Available columns: {list(df.columns)}")
+    
+    df_copy = df.copy()
+    
+    # Check if the column is already numeric AND of the correct type
+    if pd.api.types.is_numeric_dtype(df[column_name]) and df[column_name].dtype == dtype:
+        print(f"'{column_name}' is already numeric ({dtype}).")
+    else:
+        # Convert using the specified dtype
+        df_copy[column_name] = pd.to_numeric(df_copy[column_name], errors='coerce').astype(dtype)
+        print(f"'{column_name}' converted to {dtype}.")
+        print(f"Actual dtype: {df_copy[column_name].dtype}")
+    
+    if show_head:
+        print("\nHead of converted column:")
+        print(df_copy[column_name].head())
+    
+    return df_copy
+
+def return_product_two_columns(df, col1, col2, new_col_name='product', show_head=False):
+    """
+    Returns a DataFrame with a new column that is the product of two specified columns.
+
+    Parameters:
+    -----------
+    df : pandas.DataFrame
+        The input DataFrame.
+    col1 : str
+        The name of the first column.
+    col2 : str
+        The name of the second column.
+    new_col_name : str, optional
+        The name of the new column to store the product (default is 'product').
+
+    Returns:
+    --------
+    pandas.DataFrame
+        DataFrame with the new product column added.
+    """
+    df_copy = df.copy()
+    df_copy[new_col_name] = df_copy[col1] * df_copy[col2]
+    if show_head:
+        print(df_copy.head())
+    return df_copy
+
+def compute_rfm_features(df, customer_col='customer_id', invoice_col='invoice', date_col='invoicedate', total_col='sale_total'):
+    """
+    Calculates Recency, Frequency, and Monetary (RFM) features for each customer.
+
+    Aggregates transaction-level data to the customer level to determine:
+    - Monetary: Total money spent by the customer.
+    - Frequency: Count of unique transactions/purchases.
+    - Recency: Number of days since the customer's last purchase relative to the dataset's most recent transaction.
+
+    Parameters:
+    -----------
+    df : pandas.DataFrame
+        The input transactional DataFrame.
+    customer_col : str, default='customer_id'
+        Name of the column containing unique customer identifiers.
+    invoice_col : str, default='invoice'
+        Name of the column containing unique invoice/transaction identifiers.
+    date_col : str, default='invoicedate'
+        Name of the column containing the transaction date (must be datetime).
+    total_col : str, default='sale_total'
+        Name of the column containing the transaction value (price * quantity).
+
+    Returns:
+    --------
+    pandas.DataFrame
+        A DataFrame with one row per customer containing:
+        - sale_value: Total monetary value (Monetary).
+        - frequency: Number of unique invoices (Frequency).
+        - recency_days: Days since last purchase (Recency). Compared to the most recent transaction date in the dataset.
+    """
+    # Group by customer and aggregate metrics
+    df_rfm = df.groupby(by=customer_col, as_index=False).agg(
+        sale_value=(total_col, 'sum'),            # Sum of sales per customer
+        frequency=(invoice_col, 'nunique'),        # Count of unique invoices
+        last_invoice_date=(date_col, 'max')        # Most recent purchase date
+    )
+    
+    # Calculate Recency in days
+    # Reference date is the most recent transaction in the entire dataset
+    max_date = df_rfm['last_invoice_date'].max()
+    df_rfm['recency_days'] = (max_date - df_rfm['last_invoice_date']).dt.days
+    
+    # Clean up: remove the temporary date column
+    df_rfm.drop(columns=['last_invoice_date'], inplace=True)
+    
+    return df_rfm
+
