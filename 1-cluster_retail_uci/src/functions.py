@@ -7,6 +7,13 @@ from sklearn.preprocessing import StandardScaler
 from IPython.display import display
 
 
+from src.viz_functions import (
+    describe_clusters,
+    plot_cluster_means_comparison,
+    plot_rfm_boxplots,
+)
+
+
 def normalize_column_names(df):
     """Normalize column names: lowercase and replace spaces with underscores"""
     df_clean = df.copy()
@@ -700,3 +707,30 @@ def compute_rfm_features(
 
     display(f"Computed RFM features for {len(df_rfm)} customers")
     return df_rfm
+
+def summarize_clusters_with_plots(df_rfm, df_cluster, cluster_map_names=None):
+    """
+    Encapsulates the post-KMeans cluster description steps:
+      - Build df_real_values on the original RFM scale (sale_value, frequency, recency_days)
+      - Attach cluster labels
+      - Optional name mapping
+      - Plot cluster means comparison and boxplots
+      - Return description from describe_clusters
+    """
+    # Merge cluster labels into real-value RFM
+    df_real_values = df_rfm[["sale_value", "frequency", "recency_days"]].copy()
+    df_real_values["cluster"] = df_cluster["cluster"].values
+
+    # Optional name mapping
+    if cluster_map_names:
+        df_real_values["cluster_name"] = df_real_values["cluster"].map(cluster_map_names)
+
+    # Plots
+    plot_cluster_means_comparison(df_real_values)
+    plot_rfm_boxplots(df_real_values)
+
+    # Description
+    cols = df_real_values.columns.to_list()
+    cluster_desc = describe_clusters(df_real_values, cols)
+
+    return df_real_values, cluster_desc

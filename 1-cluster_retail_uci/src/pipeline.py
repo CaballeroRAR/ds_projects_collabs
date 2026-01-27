@@ -5,24 +5,44 @@ import io
 import ipywidgets as widgets
 from IPython.display import display
 
-# project_root = os.path.abspath(os.path.join(os.getcwd(), '..', '..'))
-# path_to_functions = os.path.join(project_root, '1-cluster_retail_uci', 'src')
-# sys.path.append(path_to_functions)
+# Local module imports - from src.functions
+from src.functions import (
+    normalize_column_names,
+    df_column_to_string,
+    filter_rows_starting_with,
+    remove_and_display_unique_prefixes,
+    get_abnormal_values,
+    filter_consecutive_digits,
+    exclude_values_by_list,
+    drop_na_duplicates_and_zeroes,
+    mean_encoder,
+    convert_column_to_numeric,
+    return_product_two_columns,
+    compute_rfm_features,
+    log_transform_column,
+    set_column_as_index,
+    apply_standard_scaling,
+    plot_cluster_means_comparison,
+    plot_rfm_boxplots,
+    describe_clusters,
+    summarize_clusters_with_plots,
+)
 
-# from .functions import (
-#     mean_encoder,
-#     normalize_column_names,
-#     df_column_to_string,
-#     filter_rows_starting_with,
-#     remove_and_display_unique_prefixes,
-#     get_abnormal_values,
-#     display_rows_by_list,
-#     filter_consecutive_digits,
-#     exclude_values_by_list,
-#     drop_na_duplicates_and_zeroes,
-# )
-from src.functions import *
+# Local module imports - from src.elbow_method
+from src.elbow_method import (
+    plot_elbow_method,
+    apply_pca,
+)
 
+# Local module imports - from src.k_means_function
+from src.k_means_function import (
+    apply_kmeans,
+)
+
+# Local module imports - from src.viz_functions
+from src.viz_functions import (
+    visualize_pca,
+)
 
 def cleaning_pipeline(df):
     display("Starting data cleaning pipeline")
@@ -82,26 +102,30 @@ def feature_engineering_pipeline(
     return df, country_map
 
 
-def master_pipeline_to_log_rfm(df_raw):
-    display("Starting Master Pipeline: Raw Data → RFM Features → Log Transformed")
+def master_pipeline_to_log_rfm(
+    df_raw,
+    cols_to_scale=None,
+):
+    """
+    Returns:
+        df_log: log-transformed RFM with customer_id as index
+        df_rfm: raw RFM (for real-value descriptions)
+        df_scaled: scaled features ready for K-Means
+        scaler: fitted scaler
+    """
+    if cols_to_scale is None:
+        cols_to_scale = ["sale_value_log", "frequency_log", "recency_days"]
+
+    display("Starting Master Pipeline: Raw Data → RFM Features → Log Transformed → Scaled")
     display(f"Input data shape: {df_raw.shape}")
 
-    # Step 1: Clean data
-    display("Step 1: Data Cleaning Pipeline")
-    display(
-        "Normalizing column names, filtering invoices, removing abnormal stock codes"
-    )
+    # Step 1: Clean
     df_clean = cleaning_pipeline(df_raw)
 
     # Step 2: Feature engineering
-    display("Step 2: Feature Engineering")
-    display("Encoding countries, converting customer IDs, calculating sale totals")
     df_fe, country_map = feature_engineering_pipeline(df_clean)
-    display(f"Countries encoded: {len(country_map)} unique values")
 
-    # Step 3: RFM computation
-    display("Step 3: RFM Feature Computation")
-    display("Calculating Recency, Frequency, Monetary values per customer")
+    # Step 3: RFM
     df_rfm = compute_rfm_features(
         df_fe,
         customer_col="customer_id",
@@ -110,23 +134,20 @@ def master_pipeline_to_log_rfm(df_raw):
         total_col="sale_total",
     )
 
-    # Step 4: Log transformation
-    display("Step 4: Log Transformation")
+    # Step 4: Log transform
     columns_to_transform = ["frequency", "sale_value"]
-    display(f"Applying log transform to: {', '.join(columns_to_transform)}")
     df_log = log_transform_column(df_rfm, columns_to_transform, True)
 
-    # Step 5: Set index
-    display("Step 5: Index Configuration")
-    display("Setting customer_id as DataFrame index")
+    # Step 5: Index
     df_log = set_column_as_index(df_log, "customer_id")
 
-    display("Master Pipeline Complete!")
-    display(
-        f"Final RFM dataset ready with {df_log.shape[0]} customers and {df_log.shape[1]} features"
-    )
+    # Step 6: Scaling
+    df_scaled, scaler = apply_standard_scaling(df_log, cols_to_scale)
 
-    return df_log
+    display(
+        f"Final datasets ready: df_log shape {df_log.shape}, df_scaled shape {df_scaled.shape}"
+    )
+    return df_log, df_rfm, df_scaled, scaler
 
 
 def load_pkl_to_dataframe(var_name="df"):
@@ -196,3 +217,59 @@ def load_pkl_to_dataframe(var_name="df"):
 
     display(uploader)
     return uploader
+
+
+def full_clustering_pipeline(
+    df_raw,
+    k_range=range(1, 11),
+    default_k=4,
+    cols_to_scale=None,
+    cluster_map_names=None,
+):
+    """
+    End-to-end pipeline:
+      - master_pipeline_to_log_rfm
+      - elbow plot
+      - K-Means
+      - PCA visualization
+      - cluster summary (means, boxplots, describe_clusters)
+    Returns: dict with df_log, df_rfm, df_scaled, scaler, df_cluster, kmeans_model, df_pca, pca_model, df_real_values, cluster_desc
+    """
+    if cols_to_scale is None:
+        cols_to_scale = ["sale_value_log", "frequency_log", "recency_days"]
+
+    # Prep
+    df_log, df_rfm, df_scaled, scaler = master_pipeline_to_log_rfm(df_raw, cols_to_scale)
+
+    # Elbow
+    plot_elbow_method(df_scaled, k_range=k_range)
+
+    # Choose k (default_k used; you can swap in a prompt if desired)
+    n_clusters = default_k
+
+    # K-Means + PCA
+    df_cluster, kmeans_model = apply_kmeans(df_scaled, n_clusters=n_clusters)
+    df_pca, pca_model = apply_pca(df_cluster, plot_variance=False)
+
+    # PCA Visualization
+    visualize_pca(df_pca, df_cluster, kmeans_model, pca_model, save_path="graph_img", filename="pca_clusters_visualization.png")
+
+    # Cluster summary (real-value scale)
+    df_real_values, cluster_desc = summarize_clusters_with_plots(
+        df_rfm,
+        df_cluster,
+        cluster_map_names=cluster_map_names,
+    )
+
+    return {
+        "df_log": df_log,
+        "df_rfm": df_rfm,
+        "df_scaled": df_scaled,
+        "scaler": scaler,
+        "df_cluster": df_cluster,
+        "kmeans_model": kmeans_model,
+        "df_pca": df_pca,
+        "pca_model": pca_model,
+        "df_real_values": df_real_values,
+        "cluster_desc": cluster_desc,
+    }

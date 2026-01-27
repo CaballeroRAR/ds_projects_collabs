@@ -263,31 +263,25 @@ def describe_clusters(df_cluster, feature_columns):
 
 # Cluster analysis visualization function
 
+
 def plot_rfm_boxplots(df, save_path='graph_img', filename='rfm_boxplots.png'):
     """
     Plots box plots for Sale Value, Frequency, and Recency per cluster.
     Applies Log scale to monetary/frequency features for better visibility.
+    Automatically adapts the qualitative color palette to the number of unique clusters.
     """
     # Ensure cluster is treated as a category
     df_plot = df.copy()
     df_plot['cluster'] = df_plot['cluster'].astype('category')
 
-    # Define the mapping of Cluster ID to Hex Color
-    # Cluster 1: Blue, Cluster 2: Yellow, Cluster 3: Grey, Cluster 0: Red
-    custom_palette_mapping = {
-        1: '#4b7ccc',
-        2: '#E6C30C',
-        3: '#858d99',
-        0: '#cc5948',
-        4: '#44cc78'  # Added color for Cluster 4 if exists
-    }
-
-    # Sort the clusters (0, 1, 2, 3) so the legend and x-axis are ordered correctly
-    # This ensures Cluster 0 is first, Cluster 1 is second, etc.
-    sorted_cluster_ids = sorted(custom_palette_mapping.keys())
+    # DYNAMIC PALETTE SELECTION (Qualitative)
+    # 1. Identify unique clusters in the data
+    unique_clusters = sorted(df_plot['cluster'].unique())
+    n_clusters = len(unique_clusters)
     
-    # Create the palette list in the sorted order
-    palette = [custom_palette_mapping[cid] for cid in sorted_cluster_ids]
+    # 2. Use 'husl' which generates visually distinct qualitative colors
+    # for any number of clusters requested.
+    palette = sns.color_palette('husl', n_clusters)
 
     # Setup the figure layout (3 rows, 1 column)
     fig, axes = plt.subplots(3, 1, figsize=(12, 14))
@@ -300,8 +294,8 @@ def plot_rfm_boxplots(df, save_path='graph_img', filename='rfm_boxplots.png'):
         hue='cluster',
         legend=False,
         ax=axes[0], 
-        palette=palette,  # Use the sorted custom palette
-        order=sorted_cluster_ids, # Ensure x-axis is sorted 0-3
+        palette=palette,
+        order=unique_clusters,
         showfliers=False 
     )
     global_mean_sale = df_plot['sale_value'].mean()
@@ -321,7 +315,7 @@ def plot_rfm_boxplots(df, save_path='graph_img', filename='rfm_boxplots.png'):
         legend=False,
         ax=axes[1], 
         palette=palette,
-        order=sorted_cluster_ids,
+        order=unique_clusters,
         showfliers=False
     )
     global_mean_freq = df_plot['frequency'].mean()
@@ -341,7 +335,7 @@ def plot_rfm_boxplots(df, save_path='graph_img', filename='rfm_boxplots.png'):
         legend=False,
         ax=axes[2], 
         palette=palette,
-        order=sorted_cluster_ids,
+        order=unique_clusters,
         showfliers=False
     )
     global_mean_recency = df_plot['recency_days'].mean()
@@ -367,39 +361,62 @@ def plot_rfm_boxplots(df, save_path='graph_img', filename='rfm_boxplots.png'):
 def plot_cluster_means_comparison(df, save_path='graph_img', filename='cluster_means_comparison.html'):
     """
     Creates interactive horizontal bar charts comparing the MEAN of each feature across clusters.
-    Displays exact values on hover.
+    Displays exact values on hover and as text labels on bars.
     """
     df_plot = df.copy()
     df_plot['cluster'] = df_plot['cluster'].astype('category')
     
+    # Calculate means
     cluster_means = df_plot.groupby('cluster')[['sale_value', 'frequency', 'recency_days']].mean().reset_index()
+    
+    # Sort by Sale Value to establish a consistent ranking order
     cluster_means = cluster_means.sort_values('sale_value', ascending=False)
+
+    # Ensure the cluster column is treated as a string for consistent handling
+    cluster_means['cluster'] = cluster_means['cluster'].astype(str)
+
+    # GET THE EXACT ORDER OF CLUSTERS AFTER SORTING
+    sorted_cluster_ids = cluster_means['cluster'].unique().tolist()
 
     if not os.path.exists(save_path):
         os.makedirs(save_path)
     
-    # colors = px.colors.sequential.Plasma
-    colors = ['#4b7ccc', '#E6C30C', '#858d99', '#cc5948']
+    colors = px.colors.qualitative.Plotly
 
+    # 1. Sale Value Chart
     fig_val = px.bar(
         cluster_means, 
         x='sale_value', 
         y='cluster', 
         orientation='h',
-        color='cluster',
-        color_discrete_sequence=colors,
+        color='cluster',            # Let Plotly handle the color assignment
+        color_discrete_sequence=colors, # Use the professional palette
         title='Mean Monetary Value (Sale Value)',
-        text=None 
+        text='sale_value',
+        category_orders={"cluster": sorted_cluster_ids}
     )
     fig_val.update_layout(
         xaxis_title="Sale Value",
         yaxis_title="Cluster",
-        hovermode="y unified"
+        hovermode="y unified",
+        plot_bgcolor='rgba(240,240,240,0.8)', 
+        paper_bgcolor='white',
+        font=dict(color="#333333"),
+        title_font=dict(size=18, family="Arial", color='#111111'),
+        xaxis=dict(showgrid=True, gridcolor='white', gridwidth=1),
+        yaxis=dict(showgrid=False)
     )
     fig_val.update_traces(
-        hovertemplate='<b>Cluster %{y}</b><br>Mean Value: %{x:,.2f}<extra></extra>'
+        texttemplate='%{x:,.0f}', 
+        textposition='outside',
+        textfont=dict(size=12, color='#333333'),
+        hovertemplate='<b>Cluster %{y}</b><br>Mean Value: %{x:,.2f}<extra></extra>',
+        marker_line_color='rgb(8,48,107)',
+        marker_line_width=1.5,
+        opacity=0.9
     )
 
+    # 2. Frequency Chart
     fig_freq = px.bar(
         cluster_means, 
         x='frequency', 
@@ -408,17 +425,31 @@ def plot_cluster_means_comparison(df, save_path='graph_img', filename='cluster_m
         color='cluster',
         color_discrete_sequence=colors,
         title='Mean Frequency',
-        text=None
+        text='frequency',
+        category_orders={"cluster": sorted_cluster_ids}
     )
     fig_freq.update_layout(
         xaxis_title="Frequency (Count)",
         yaxis_title="Cluster",
-        hovermode="y unified"
+        hovermode="y unified",
+        plot_bgcolor='rgba(240,240,240,0.8)',
+        paper_bgcolor='white',
+        font=dict(color="#333333"),
+        title_font=dict(size=18, family="Arial", color='#111111'),
+        xaxis=dict(showgrid=True, gridcolor='white', gridwidth=1),
+        yaxis=dict(showgrid=False)
     )
     fig_freq.update_traces(
-        hovertemplate='<b>Cluster %{y}</b><br>Mean Frequency: %{x:,.2f}<extra></extra>'
+        texttemplate='%{x:.1f}',
+        textposition='outside',
+        textfont=dict(size=12, color='#333333'),
+        hovertemplate='<b>Cluster %{y}</b><br>Mean Frequency: %{x:.2f}<extra></extra>',
+        marker_line_color='rgb(8,48,107)',
+        marker_line_width=1.5,
+        opacity=0.9
     )
 
+    # 3. Recency Chart
     fig_rec = px.bar(
         cluster_means, 
         x='recency_days', 
@@ -427,17 +458,31 @@ def plot_cluster_means_comparison(df, save_path='graph_img', filename='cluster_m
         color='cluster',
         color_discrete_sequence=colors,
         title='Mean Recency (Days)',
-        text=None
+        text='recency_days',
+        category_orders={"cluster": sorted_cluster_ids}
     )
     fig_rec.update_layout(
         xaxis_title="Days Since Last Purchase",
         yaxis_title="Cluster",
-        hovermode="y unified"
+        hovermode="y unified",
+        plot_bgcolor='rgba(240,240,240,0.8)',
+        paper_bgcolor='white',
+        font=dict(color="#333333"),
+        title_font=dict(size=18, family="Arial", color='#111111'),
+        xaxis=dict(showgrid=True, gridcolor='white', gridwidth=1),
+        yaxis=dict(showgrid=False)
     )
     fig_rec.update_traces(
-        hovertemplate='<b>Cluster %{y}</b><br>Mean Recency: %{x:,.0f} days<extra></extra>'
+        texttemplate='%{x:.0f} days',
+        textposition='outside',
+        textfont=dict(size=12, color='#333333'),
+        hovertemplate='<b>Cluster %{y}</b><br>Mean Recency: %{x:,.0f} days<extra></extra>',
+        marker_line_color='rgb(8,48,107)',
+        marker_line_width=1.5,
+        opacity=0.9
     )
 
+    # Save paths
     path_val = os.path.join(save_path, 'mean_sale_value.html')
     path_freq = os.path.join(save_path, 'mean_frequency.html')
     path_rec = os.path.join(save_path, 'mean_recency.html')
