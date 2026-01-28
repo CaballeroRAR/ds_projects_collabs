@@ -1,6 +1,4 @@
-# ds_projects_collabs
-
-Data Science projects in collaboration.
+# Data Science projects in collaboration.
 
 # 1. Retail Customer Segmentation – UCI Machine Learning Repository
 
