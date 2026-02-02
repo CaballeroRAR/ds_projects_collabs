@@ -46,6 +46,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
+from IPython.display import display  # Required for enhanced logging
 
 # Local imports last (use relative imports within packages)
 from .functions import (
@@ -99,7 +100,10 @@ def function_name(param1, param2, optional_param=default):
 - **Copy Data**: Always use `df.copy()` when creating new DataFrames to avoid SettingWithCopyWarning
 - **Chain Operations**: Prefer method chaining for simple transformations
 - **Intermediate Variables**: Use descriptive variable names for complex multi-step operations
-- **Logging**: Include print statements for operation feedback (e.g., "Rows removed:", "Model fitted.")
+- **Enhanced Logging**: Use `display()` from IPython.display instead of `print()` for better Jupyter output formatting
+- **Essential Information Only**: Show shapes, row counts, and drop counts - avoid verbose output
+- **Progress Tracking**: Include input/output shapes and meaningful counts at key pipeline steps
+- **No Emojis**: Use clean, professional text output without emoji characters
 
 ### File Structure
 ```
@@ -123,6 +127,11 @@ def function_name(param1, param2, optional_param=default):
 - **State Management**: Return transformed DataFrames for pipeline chaining
 - **Reproducibility**: Use `random_state` parameters for ML models
 - **Documentation**: Include step-by-step comments in pipeline functions
+- **Enhanced Pipeline Logging**: 
+  - Orchestrate with progress indicators at each major step
+  - Track DataFrame shapes throughout the pipeline
+  - Show essential metrics for data cleaning operations
+  - Display clear step separators without emojis
 
 ### Machine Learning Conventions
 - **Scaling**: Use `StandardScaler` from sklearn for feature preprocessing
@@ -140,7 +149,57 @@ def function_name(param1, param2, optional_param=default):
 - **No Comments**: Avoid inline code comments unless specifically requested
 - **Descriptive Names**: Use self-documenting variable and function names
 - **Consistent Patterns**: Follow established patterns from existing codebase
-- **Minimal Dependencies**: Use only necessary libraries (pandas, numpy, sklearn, matplotlib, seaborn)
+- **Minimal Dependencies**: Use only necessary libraries (pandas, numpy, sklearn, matplotlib, seaborn, IPython.display)
+- **Logging Standards**: Use `display()` for enhanced output, show essential metrics only, avoid verbose printing
+
+### Enhanced Logging System
+
+All pipeline functions have been upgraded with comprehensive logging using `display()` from IPython.display:
+
+#### Key Features:
+- **Better Formatting**: `display()` provides superior table and text formatting in Jupyter notebooks
+- **Essential Information Only**: Shows DataFrame shapes, row counts, and drop counts
+- **Progress Tracking**: Clear step-by-step progress indicators throughout pipelines
+- **Professional Output**: Clean text without emojis or verbose messages
+- **Data Validation**: Shows before/after comparisons for major operations
+
+#### Functions with Enhanced Logging:
+**Pipeline Orchestrators:**
+- `master_pipeline_to_log_rfm()` - Complete pipeline progress tracking
+- `cleaning_pipeline()` - Data cleaning step progress with shapes
+- `feature_engineering_pipeline()` - Feature engineering progress tracking
+
+**Data Cleaning Functions:**
+- `normalize_column_names()` - Column name changes confirmation
+- `df_column_to_string()` - Type conversion with data type info
+- `filter_rows_starting_with()` - Filtered row counts and samples
+- `remove_and_display_unique_prefixes()` - Prefix analysis with counts
+- `get_abnormal_values()` - Abnormal value detection with lists
+- `filter_consecutive_digits()` - Digit pattern filtering with drop counts
+- `exclude_values_by_list()` - Exclusion filtering with removal counts
+- `drop_na_duplicates_and_zeroes()` - Comprehensive cleaning step logging
+
+**Feature Engineering Functions:**
+- `mean_encoder()` - Category encoding with unique value counts
+- `convert_column_to_numeric()` - Numeric conversion with dtype info
+- `return_product_two_columns()` - Column multiplication confirmation
+- `compute_rfm_features()` - RFM calculation with customer counts
+- `log_transform_column()` - Log transformation with column info
+- `set_column_as_index()` - Index setting with final shape
+
+#### Usage Examples:
+```python
+# Import required for enhanced logging
+from IPython.display import display
+
+# Pipeline with comprehensive logging
+df_log = master_pipeline_to_log_rfm(df_raw)
+# Output: Step-by-step progress with shapes and counts
+
+# Individual function with enhanced logging
+df_clean = drop_na_duplicates_and_zeroes(df)
+# Output: Detailed cleaning statistics and final shape
+```
 
 ## Special Notes
 
@@ -149,3 +208,6 @@ def function_name(param1, param2, optional_param=default):
 - **RFM Analysis**: Focus on recency, frequency, monetary customer segmentation
 - **Visualization**: Emphasis on clear, informative plots for business insights
 - **No Testing Framework**: Manual testing through notebooks - consider adding pytest for future development
+- **Enhanced Logging System**: All pipeline functions now use `display()` for better Jupyter output
+- **Comprehensive Progress Tracking**: Data shapes, row counts, and drop counts shown at each step
+- **Clean Output**: Professional logging without emojis, focusing on essential information only
