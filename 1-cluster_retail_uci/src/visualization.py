@@ -307,7 +307,7 @@ def plot_cluster_means_comparison(df, save_path='graph_img', filename='cluster_m
     Displays exact values on hover and as text labels on bars.
     """
     # 1. Calculate Means
-    numeric_cols = df.select_dtypes(include=[np.number]).columns
+    numeric_cols = df.select_dtypes(include=[np.number]).columns.drop('cluster', errors='ignore')
 
     cluster_means = df.groupby('cluster')[numeric_cols].mean().reset_index()
 
@@ -534,7 +534,10 @@ def summarize_clusters_with_plots(df_rfm, df_cluster, cluster_map_names=None):
     plot_rfm_boxplots(df_real_values)
 
     # Description
-    cols = df_real_values.columns.to_list()
+    cols = df_real_values.select_dtypes(include=[np.number]).columns.tolist()
+    # Excluding 'cluster' if present as we group by it
+    if 'cluster' in cols:
+        cols.remove('cluster')
     cluster_desc = describe_clusters(df_real_values, cols)
 
     return df_real_values, cluster_desc
