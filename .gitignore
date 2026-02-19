@@ -1,46 +1,88 @@
-# Python Cache
+# --- Python Cache ---
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
+*$py.class
 *.pyd
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.pyre/
 
-# Virtual ENV
+# --- Virtual Environments ---
 venv/
 env/
 ENV/
 .venv/
-.continue/
+.env/
 .data_env/
+.continue/
 
-# Environment variables
+# --- Environment Variables ---
 .env
 .env.local
+.env.shared
+.env.*.local
 
-# IDEs (VSCode, PyCharm, etc.)
-.idea/
-*.swp
-*.swo
+# --- IDEs & Editors ---
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+.history/
+*.sublime-project
+*.sublime-workspace
 
-# Jupyter Notebook
+# --- Jupyter Notebook ---
 *.ipynb_checkpoints
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
 
-# Pickle files
+# --- Data & Models (Large Files) ---
+# It is best practice to keep large datasets out of Git
+*.csv
+*.tsv
+*.jsonl
+*.parquet
+*.feather
+*.h5
+*.hdf5
 *.pkl
+*.pickle
+*.joblib
+*.npy
+*.npz
+*.sqlite
+*.db
 
-# Excel files
+# --- Spreadsheets ---
 *.xlsx
 *.xls
+*.xlsm
+*.csv
 
-# OS
+# --- Operating System ---
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
-# Image Outputs Folder
-graph_img/
+# --- Archives & Distribution ---
+*.zip
+*.tar.gz
+*.rar
+*.7z
+dist/
+build/
+*.egg-info/
 
+# --- Project Specific ---
+graph_img/
 pyrightconfig.json
+AGENTS.md
