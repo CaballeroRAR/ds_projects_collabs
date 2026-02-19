@@ -93,3 +93,27 @@ End-to-end data engineering and unsupervised learning project focused on custome
 Modular Python cleaning pipeline, clean datasets in Pickle format, trained clustering model, and RFM analysis enabling customer segmentation strategies for targeted marketing and retention planning.
 
 **Skills Demonstrated:** Data Engineering (ETL), Custom Pipeline Development, Python Scripting, Data Cleaning & Preprocessing, Regex, Exploratory Data Analysis (EDA), Unsupervised Machine Learning (K-Means), RFM Analysis, Customer Segmentation
+
+# 2. The Astroturfing Report: Analyzing Authenticity in Top Comments
+
+## Overview
+A forensic Data Science investigation aimed at quantifying and analyzing the authenticity of public discourse on social media. By combining metadata heuristics and Natural Language Processing (NLP), the project identifies suspicious account behavior, detects bot-driven "astroturfing" campaigns, and segments organic sentiment from manufactured consensus.
+
+## Focus Areas
+- **Metadata Forensics:** Building a multi-dimensional "Trust Score" based on account age, karma distributions, and status patterns to separate human members from suspect clusters.
+- **Narrative Analysis:** Utilizing advanced NLP to detect topic inflation and sentiment manipulation across different trust segments.
+- **Network Health:** Investigating "Echo Chambers" through reply-tree mapping and network statistics to identify isolated interaction loops among low-trust accounts.
+
+## Tech Stack
+![Python](https://img.shields.io/badge/Python-Medium-182625?style=flat&logo=python&logoColor=white)
+![GCP](https://img.shields.io/badge/GCP-Cloud-4285F4?style=flat&logo=google-cloud&logoColor=white)
+![Reddit](https://img.shields.io/badge/Reddit-API-FF4500?style=flat&logo=reddit&logoColor=white)
+![Transformers](https://img.shields.io/badge/NLP-Transformers-yellow?style=flat&logo=huggingface&logoColor=white)
+![BigQuery](https://img.shields.io/badge/BigQuery-Analytics-blue?style=flat&logo=google-cloud&logoColor=white)
+
+## Objectives
+- **Account Segmentation:** Using K-Means and feature scaling to categorize users into distinct behavioral clusters.
+- **Sentiment Forensics:** Comparing sentiment profiles between established accounts and "throwaway" or deleted entities to find significant deviations.
+- **Temporal Mining:** Target subreddits during specific events to track the evolution of bot-narratives over time.
+
+**Skills to beDemonstrated:** NLP (Sentiment/Topic Modeling), Metadata Forensics, Cloud Data Engineering (GCP), Network Analysis, Behavioral Clustering, API Mining (PRAW).
