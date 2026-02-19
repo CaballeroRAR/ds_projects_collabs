@@ -9,6 +9,8 @@ venv/
 env/
 ENV/
 .venv/
+.continue/
+.data_env/
 
 # Environment variables
 .env
