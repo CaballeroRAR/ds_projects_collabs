@@ -86,3 +86,4 @@ build/
 graph_img/
 pyrightconfig.json
 AGENTS.md
+workflow.txt
