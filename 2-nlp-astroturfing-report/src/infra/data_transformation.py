@@ -3,6 +3,7 @@ import json
 import pandas as pd
 from typing import List, Dict, Any
 from pathlib import Path
+from loguru import logger
 
 def flatten_reddit_json(json_path: str) -> pd.DataFrame:
     """
@@ -13,15 +14,12 @@ def flatten_reddit_json(json_path: str) -> pd.DataFrame:
         data = json.load(f)
         
     submission_id = data.get("submission_id")
-    submission_title = data.get("title")
-    
     rows = []
     for comment in data.get("comments", []):
         author_info = comment.get("author", {})
         
         row = {
             "submission_id": submission_id,
-            "submission_title": submission_title,
             "comment_id": comment.get("id"),
             "parent_id": comment.get("parent_id"),
             "body": comment.get("body"),
@@ -49,12 +47,12 @@ def transform_all_raw_to_structured(raw_dir: str, output_dir: str, format: str =
     json_files = list(raw_path.glob("**/*.json"))
     
     if not json_files:
-        print(f"No JSON files found in {raw_dir}")
+        logger.warning(f"No JSON files found in {raw_dir}")
         return
 
     all_dfs = []
     for json_file in json_files:
-        print(f"Processing {json_file.name}...")
+        logger.info(f"Processing {json_file.name}...")
         df = flatten_reddit_json(str(json_file))
         all_dfs.append(df)
         
@@ -72,6 +70,7 @@ def transform_all_raw_to_structured(raw_dir: str, output_dir: str, format: str =
         final_df.to_csv(output_path, index=False)
         
     print(f"Transformation complete. Saved to {output_path}")
+    logger.success(f"Transformation complete. Saved to {output_path}")
 
 if __name__ == "__main__":
     # Example usage:

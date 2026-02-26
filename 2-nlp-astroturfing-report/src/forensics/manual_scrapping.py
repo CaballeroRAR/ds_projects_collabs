@@ -1,15 +1,12 @@
 import os
 import json
 import time
-import logging
 import requests
 from datetime import datetime
 from typing import List, Dict, Any
+from loguru import logger
 from src.forensics.trust_scoring import calculate_trust_score
 
-# Set up logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
 
 # Essential for the .json trick: Use a unique/legit looking User-Agent to avoid 429 errors
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 AstroturfingReport/1.0"
@@ -95,27 +92,22 @@ def process_comments_raw(comment_data: List[Dict]) -> List[Dict]:
                 
     return flattened
 
-def enrich_top_comments(comments: List[Dict], limit: int = 10) -> List[Dict]:
-    """Sort comments by score and enrich authors only for the top N."""
-    # Sort all comments by score descending
-    sorted_comments = sorted(comments, key=lambda x: x.get("score", 0), reverse=True)
+def enrich_all_comments(comments: List[Dict]) -> List[Dict]:
+    """Enrich all authors in the flattened comment list."""
+    # Find unique authors first to count them
+    unique_authors = {c["author"]["name"] for c in comments if c["author"].get("name") and c["author"]["name"] not in ["[deleted]", "[removed]", "AutoModerator"]}
+    
+    logger.warning(f"Starting enrichment: {len(comments)} comments, {len(unique_authors)} unique users to process.")
     
     author_cache = {}
-    
-    # Only enrich the top N
-    for i, comment in enumerate(sorted_comments):
-        if i >= limit:
-            # For comments outside top N, ensure they have a basic author object if they don't already
-            # and explicitly mark as not enriched if needed (optional)
-            if "is_deleted" not in comment["author"]:
-                comment["author"]["is_enriched"] = False
-            continue
-            
+    for i, comment in enumerate(comments):
         author_name = comment["author"].get("name")
         if author_name and author_name not in author_cache:
-            logger.info(f"Enriching top author ({i+1}/{limit}): {author_name}")
+            # We don't log every single one anymore to keep the console clean, 
+            # unless it's a real fetch.
             author_cache[author_name] = fetch_author_manual(author_name)
-            # Sleep briefly to avoid 429 during enrichment
+            
+            # Rate limiting: Only sleep for real profile fetches
             if author_cache[author_name] and not author_cache[author_name].get("is_deleted"):
                 time.sleep(1)
         
@@ -127,7 +119,7 @@ def enrich_top_comments(comments: List[Dict], limit: int = 10) -> List[Dict]:
         # Calculate Trust Score
         comment["trust_score"] = calculate_trust_score(enriched_author)
         
-    return sorted_comments
+    return comments
 
 def save_raw_data(subreddit_name: str, report_data: Dict[str, Any]):
     """Helper to save raw JSON data to the standard hierarchy."""
@@ -194,9 +186,9 @@ def scrape_manual(subreddit_name: str, sort: str = "top", timeframe: str = "mont
         submission_info = details[0]["data"]["children"][0]["data"]
         comment_listing = details[1]["data"]["children"]
         
-        # Process comments: Flatten first, then enrich only the top 10
+        # Process comments: Flatten first, then enrich ALL
         raw_comments = process_comments_raw(comment_listing)
-        processed_comments = enrich_top_comments(raw_comments, limit=10)
+        processed_comments = enrich_all_comments(raw_comments)
         
         # Mimic our PRAW scraper structure
         report_data = {
@@ -230,7 +222,7 @@ def scrape_submission_url(url: str):
 
     author_cache = {}
     raw_comments = process_comments_raw(comment_listing)
-    processed_comments = enrich_top_comments(raw_comments, limit=10)
+    processed_comments = enrich_all_comments(raw_comments)
 
     report_data = {
         "submission_id": sub_id,
