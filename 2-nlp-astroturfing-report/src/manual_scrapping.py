@@ -53,7 +53,19 @@ def process_comments(comment_data: List[Dict]) -> List[Dict]:
                 continue
 
             # Basic comment info (Limited compared to PRAW, but sufficient for Phase 1)
-            
+            comment_record = {
+                "id": data.get("id"),
+                "type": "comment",
+                "parent_id": data.get("parent_id"),
+                "body": data.get("body"),
+                "score": data.get("score"),
+                "controversiality": data.get("controversiality", 0),
+                "created_utc": data.get("created_utc"),
+                "author": {
+                    "name": data.get("author")
+                }
+            }
+            flattened.append(comment_record)
             # Process replies
             replies = data.get("replies")
             if isinstance(replies, dict) and replies.get("data", {}).get("children"):
