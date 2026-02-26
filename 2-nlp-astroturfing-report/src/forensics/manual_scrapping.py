@@ -261,11 +261,7 @@ def run_integrated_flow(url: str):
     df.to_csv(csv_output, index=False)
     logger.success(f"Transformation complete: {csv_output}")
 
-    # 3. Upload Raw to GCS
-    logger.info("Uploading raw JSON to GCS...")
-    gcs_uri = upload_to_gcs(raw_file, submission_id)
-
-    # 4. Load Structured to BigQuery
+    # 3. Load Structured to BigQuery
     logger.info("Loading structured data to BigQuery...")
     load_to_bigquery(csv_output, table_name="comments_structured")
     
