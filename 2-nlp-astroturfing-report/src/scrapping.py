@@ -100,7 +100,11 @@ def scrape_subreddit(subreddit_name: str, time_filter: str = "month", limit_per_
         # Process each comment
         for comment in submission.comments.list():
             author_name = comment.author.name if comment.author else None
-            
+
+            # Noise Reduction: Skip AutoModerator
+            if author_name == "AutoModerator":
+                continue
+                
             # Fetch and cache author metadata (calculating Trust Score later)
             if author_name and author_name not in author_cache:
                 author_cache[author_name] = fetch_author_metadata(reddit, author_name)
@@ -113,6 +117,7 @@ def scrape_subreddit(subreddit_name: str, time_filter: str = "month", limit_per_
                 "body": comment.body,
                 "created_utc": comment.created_utc,
                 "score": comment.score,
+                "controversiality": getattr(comment, "controversiality", 0),
                 "author": author_cache.get(author_name) # Will be None if deleted/suspended
             }
             submission_data["comments"].append(comment_data)
@@ -125,6 +130,6 @@ def scrape_subreddit(subreddit_name: str, time_filter: str = "month", limit_per_
         logger.info(f"Saved {len(submission_data['comments'])} comments to {output_file}")
 
 if __name__ == "__main__":
-    # Example usage (will need .env configured)
+
     # scrape_subreddit(subreddit_name="test", time_filter="week", limit_per_sort=2)
     pass

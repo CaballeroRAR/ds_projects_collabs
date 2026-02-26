@@ -52,7 +52,7 @@ def process_comments(comment_data: List[Dict]) -> List[Dict]:
                     flattened.extend(process_comments(replies["data"]["children"]))
                 continue
 
-            # Basic comment info (Limited compared to PRAW, but sufficient for Phase 1)
+            # Basic comment info (Limited compared to PRAW)
             comment_record = {
                 "id": data.get("id"),
                 "type": "comment",
