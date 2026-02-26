@@ -5,6 +5,7 @@ import logging
 import requests
 from datetime import datetime
 from typing import List, Dict, Any
+from src.forensics.trust_scoring import calculate_trust_score
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -119,8 +120,12 @@ def enrich_top_comments(comments: List[Dict], limit: int = 10) -> List[Dict]:
                 time.sleep(1)
         
         # Update the comment author with enriched data
-        comment["author"] = author_cache.get(author_name) or {"name": author_name, "is_deleted": True}
+        enriched_author = author_cache.get(author_name) or {"name": author_name, "is_deleted": True}
+        comment["author"] = enriched_author
         comment["author"]["is_enriched"] = True
+        
+        # Calculate Trust Score
+        comment["trust_score"] = calculate_trust_score(enriched_author)
         
     return sorted_comments
 
