@@ -104,11 +104,15 @@ def enrich_all_comments(comments: List[Dict]) -> List[Dict]:
     logger.warning(f"Starting enrichment: {len(comments)} comments, {len(unique_authors)} unique users to process.")
     
     author_cache = {}
+    processed_count = 0
+    total_unique = len(unique_authors)
+    
     for i, comment in enumerate(comments):
         author_name = comment["author"].get("name")
         if author_name and author_name not in author_cache:
-            # We don't log every single one anymore to keep the console clean, 
-            # unless it's a real fetch.
+            processed_count += 1
+            logger.info(f"Enriching profile {processed_count}/{total_unique}: {author_name}")
+            
             author_cache[author_name] = fetch_author_manual(author_name)
             
             # Rate limiting: Only sleep for real profile fetches
