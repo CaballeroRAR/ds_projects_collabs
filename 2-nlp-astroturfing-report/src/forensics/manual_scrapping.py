@@ -1,11 +1,15 @@
 import os
 import json
 import time
+import sys
 import requests
 from datetime import datetime
 from typing import List, Dict, Any
+from pathlib import Path
 from loguru import logger
 from src.forensics.trust_scoring import calculate_trust_score
+from src.infra.data_transformation import flatten_reddit_json
+from src.infra.gcp_ingestion import upload_to_gcs, load_to_bigquery
 
 
 # Essential for the .json trick: Use a unique/legit looking User-Agent to avoid 429 errors
@@ -236,8 +240,40 @@ def scrape_submission_url(url: str):
     
     return save_raw_data(subreddit_name, report_data)
 
+def run_integrated_flow(url: str):
+    """
+    Complete flow: Scrape -> Transform -> Upload GCS -> Load BigQuery
+    """
+    logger.info(f"Starting Integrated Cloud Flow for: {url}")
+    
+    # 1. Scrape
+    raw_file = scrape_submission_url(url)
+    if not raw_file:
+        logger.error("Scraping failed. Aborting flow.")
+        return
+
+    submission_id = Path(raw_file).stem.split('_')[0]
+    
+    # 2. Transform to Structured (CSV)
+    logger.info("Transforming raw JSON to tabular CSV...")
+    df = flatten_reddit_json(raw_file)
+    csv_output = raw_file.replace(".json", ".csv")
+    df.to_csv(csv_output, index=False)
+    logger.success(f"Transformation complete: {csv_output}")
+
+    # 3. Upload Raw to GCS
+    logger.info("Uploading raw JSON to GCS...")
+    gcs_uri = upload_to_gcs(raw_file, submission_id)
+
+    # 4. Load Structured to BigQuery
+    logger.info("Loading structured data to BigQuery...")
+    load_to_bigquery(csv_output, table_name="comments_structured")
+    
+    logger.success("Integrated flow completed successfully.")
+
 if __name__ == "__main__":
-    # Example usage:
-    # scrape_manual(subreddit_name="test", sort="top", timeframe="week", limit=2)
-    # scrape_manual(subreddit_name="test", sort="controversial", timeframe="week", limit=2)
-    pass
+    if len(sys.argv) > 1:
+        target_url = sys.argv[1]
+        run_integrated_flow(target_url)
+    else:
+        logger.warning("No URL provided. Usage: python -m src.forensics.manual_scrapping [REDDIT_URL]")
