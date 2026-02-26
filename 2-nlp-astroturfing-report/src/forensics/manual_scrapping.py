@@ -35,8 +35,30 @@ def get_json(url: str, params: Dict = None) -> Dict:
         logger.error(f"Error fetching {url}: {e}")
         return None
 
-def process_comments(comment_data: List[Dict]) -> List[Dict]:
-    """Recursively flatten the Reddit comment JSON tree."""
+def fetch_author_manual(username: str) -> Dict[str, Any]:
+    """Fetch author metadata (age, karma) using the .json"""
+    # Handle deleted/removed users
+    if not username or username in ["[deleted]", "[removed]"]:
+        return {"name": "[deleted]", "is_deleted": True}
+        
+    url = f"https://www.reddit.com/user/{username}/about.json"
+    data = get_json(url)
+    
+    # If the profile is 404/Private, treat as "Deleted/Untraceable" for the Trust Score (Score 0)
+    if not data or "data" not in data:
+        return {"name": username, "is_deleted": True}
+        
+    user_data = data["data"]
+    return {
+        "name": username,
+        "is_deleted": False,
+        "created_utc": user_data.get("created_utc"),
+        "comment_karma": user_data.get("comment_karma", 0),
+        "link_karma": user_data.get("link_karma", 0)
+    }
+
+def process_comments_raw(comment_data: List[Dict]) -> List[Dict]:
+    """Recursively flatten the Reddit comment JSON tree WITHOUT author enrichment."""
     flattened = []
     
     for item in comment_data:
@@ -49,10 +71,10 @@ def process_comments(comment_data: List[Dict]) -> List[Dict]:
                 # Still process replies in case a human replied to the bot
                 replies = data.get("replies")
                 if isinstance(replies, dict) and replies.get("data", {}).get("children"):
-                    flattened.extend(process_comments(replies["data"]["children"]))
+                    flattened.extend(process_comments_raw(replies["data"]["children"]))
                 continue
 
-            # Basic comment info (Limited compared to PRAW)
+            # Basic comment info (No enrichment yet)
             comment_record = {
                 "id": data.get("id"),
                 "type": "comment",
@@ -61,17 +83,66 @@ def process_comments(comment_data: List[Dict]) -> List[Dict]:
                 "score": data.get("score"),
                 "controversiality": data.get("controversiality", 0),
                 "created_utc": data.get("created_utc"),
-                "author": {
-                    "name": data.get("author")
-                }
+                "author": {"name": author_name}
             }
             flattened.append(comment_record)
+            
             # Process replies
             replies = data.get("replies")
             if isinstance(replies, dict) and replies.get("data", {}).get("children"):
-                flattened.extend(process_comments(replies["data"]["children"]))
+                flattened.extend(process_comments_raw(replies["data"]["children"]))
                 
     return flattened
+
+def enrich_top_comments(comments: List[Dict], limit: int = 10) -> List[Dict]:
+    """Sort comments by score and enrich authors only for the top N."""
+    # Sort all comments by score descending
+    sorted_comments = sorted(comments, key=lambda x: x.get("score", 0), reverse=True)
+    
+    author_cache = {}
+    
+    # Only enrich the top N
+    for i, comment in enumerate(sorted_comments):
+        if i >= limit:
+            # For comments outside top N, ensure they have a basic author object if they don't already
+            # and explicitly mark as not enriched if needed (optional)
+            if "is_deleted" not in comment["author"]:
+                comment["author"]["is_enriched"] = False
+            continue
+            
+        author_name = comment["author"].get("name")
+        if author_name and author_name not in author_cache:
+            logger.info(f"Enriching top author ({i+1}/{limit}): {author_name}")
+            author_cache[author_name] = fetch_author_manual(author_name)
+            # Sleep briefly to avoid 429 during enrichment
+            if author_cache[author_name] and not author_cache[author_name].get("is_deleted"):
+                time.sleep(1)
+        
+        # Update the comment author with enriched data
+        comment["author"] = author_cache.get(author_name) or {"name": author_name, "is_deleted": True}
+        comment["author"]["is_enriched"] = True
+        
+    return sorted_comments
+
+def save_raw_data(subreddit_name: str, report_data: Dict[str, Any]):
+    """Helper to save raw JSON data to the standard hierarchy."""
+    current_date = datetime.now()
+    output_dir = os.path.join(
+        "data", "raw", 
+        current_date.strftime("%Y"), 
+        current_date.strftime("%m"), 
+        subreddit_name
+    )
+    os.makedirs(output_dir, exist_ok=True)
+    
+    sub_id = report_data["submission_id"]
+    output_file = os.path.join(output_dir, f"{sub_id}_manual.json")
+    
+    with open(output_file, "w", encoding="utf-8") as f:
+        json.dump(report_data, f, indent=2, ensure_ascii=False)
+    
+    logger.info(f"Saved data to {output_file}")
+    return output_file
 
 def scrape_manual(subreddit_name: str, sort: str = "top", timeframe: str = "month", limit: int = 10):
     """
@@ -111,13 +182,16 @@ def scrape_manual(subreddit_name: str, sort: str = "top", timeframe: str = "mont
         logger.info(f"Processing Submission: {sub_id} | {sub_data['title'][:50]}...")
         
         # Fetch the submission plus comments
-        # Reddit's submission JSON returns a list: [submission_info, comment_listing]
         details = get_json(f"https://www.reddit.com{permalink}.json")
         if not details or len(details) < 2:
             continue
             
         submission_info = details[0]["data"]["children"][0]["data"]
         comment_listing = details[1]["data"]["children"]
+        
+        # Process comments: Flatten first, then enrich only the top 10
+        raw_comments = process_comments_raw(comment_listing)
+        processed_comments = enrich_top_comments(raw_comments, limit=10)
         
         # Mimic our PRAW scraper structure
         report_data = {
@@ -126,17 +200,13 @@ def scrape_manual(subreddit_name: str, sort: str = "top", timeframe: str = "mont
             "score": submission_info.get("score"),
             "upvote_ratio": submission_info.get("upvote_ratio"),
             "created_utc": submission_info.get("created_utc"),
-            "comments": process_comments(comment_listing)
+            "url": f"https://www.reddit.com{permalink}",
+            "comments": processed_comments
         }
         
-        # Save to JSON
-        output_file = os.path.join(output_dir, f"{sub_id}_manual.json")
-        with open(output_file, "w", encoding="utf-8") as f:
-            json.dump(report_data, f, indent=2, ensure_ascii=False)
-            
-        logger.info(f"Saved {len(report_data['comments'])} comments to {output_file}")
+        save_raw_data(subreddit_name, report_data)
         
-        # Be nice to Reddit's servers to avoid IP blocks
+        # Be nice to Reddit's servers
         time.sleep(2)
 
 def scrape_submission_url(url: str):
@@ -153,15 +223,9 @@ def scrape_submission_url(url: str):
     sub_id = submission_info["id"]
     subreddit_name = submission_info["subreddit"]
 
-    # Create output directory
-    current_date = datetime.now()
-    output_dir = os.path.join(
-        "data", "raw", 
-        current_date.strftime("%Y"), 
-        current_date.strftime("%m"), 
-        subreddit_name
-    )
-    os.makedirs(output_dir, exist_ok=True)
+    author_cache = {}
+    raw_comments = process_comments_raw(comment_listing)
+    processed_comments = enrich_top_comments(raw_comments, limit=10)
 
     report_data = {
         "submission_id": sub_id,
@@ -170,15 +234,10 @@ def scrape_submission_url(url: str):
         "upvote_ratio": submission_info.get("upvote_ratio"),
         "created_utc": submission_info.get("created_utc"),
         "url": url,
-        "comments": process_comments(comment_listing)
+        "comments": processed_comments
     }
     
-    output_file = os.path.join(output_dir, f"{sub_id}_manual.json")
-    with open(output_file, "w", encoding="utf-8") as f:
-        json.dump(report_data, f, indent=2, ensure_ascii=False)
-        
-    logger.info(f"Successfully saved {len(report_data['comments'])} comments to {output_file}")
-    return output_file
+    return save_raw_data(subreddit_name, report_data)
 
 if __name__ == "__main__":
     # Example usage:
