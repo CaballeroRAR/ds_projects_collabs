@@ -13,10 +13,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the application code into the container
 COPY . .
 
-# Ensure the credentials file path from .env exists or handle it via volume/env
-# For Cloud Run, it's better to use Service Account ADC or mount secrets, 
-# but for this specific request, we'll assume the key is provided.
+# Ensure the app can find the src module
+ENV PYTHONPATH=/app
 
-# Set the entry point to run the scraper
-# Usage: docker run ... [url]
+# Default command: run the integrated scraping flow
+# Usage: docker run --env-file .env reddit-forensics [URL]
 ENTRYPOINT ["python", "-m", "src.forensics.manual_scrapping"]
+CMD ["--help"]

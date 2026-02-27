@@ -1,7 +1,6 @@
 requests
-pandas
 loguru
+pandas
 google-cloud-storage
 google-cloud-bigquery
 python-dotenv
-pyarrow
