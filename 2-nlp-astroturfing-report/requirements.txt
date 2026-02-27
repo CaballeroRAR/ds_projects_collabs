@@ -1,6 +1,0 @@
-requests
-loguru
-pandas
-google-cloud-storage
-google-cloud-bigquery
-python-dotenv
