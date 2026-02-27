@@ -40,31 +40,66 @@ def upload_to_gcs(local_file_path: str, submission_id: str):
     logger.success(f"File {local_file_path} uploaded to gs://{bucket_name}/{blob_name}")
     return f"gs://{bucket_name}/{blob_name}"
 
-def load_to_bigquery(csv_path: str, table_name: str = "comments_structured"):
+def load_to_bigquery(file_path: str, table_name: str = "comments_structured"):
     """
-    Loads a CSV file into BigQuery.
+    Loads a CSV or Parquet file into BigQuery.
     """
     client = get_bigquery_client()
     dataset_ref = client.dataset(GCP_DATASET_ID)
     table_ref = dataset_ref.table(table_name)
 
+    is_parquet = file_path.lower().endswith(".parquet")
+    
     job_config = bigquery.LoadJobConfig(
-        source_format=bigquery.SourceFormat.CSV,
-        skip_leading_rows=1,
         autodetect=True,
         write_disposition=bigquery.WriteDisposition.WRITE_APPEND,
     )
+    
+    if is_parquet:
+        job_config.source_format = bigquery.SourceFormat.PARQUET
+    else:
+        job_config.source_format = bigquery.SourceFormat.CSV
+        job_config.skip_leading_rows = 1
 
-    with open(csv_path, "rb") as source_file:
+    with open(file_path, "rb") as source_file:
         job = client.load_table_from_file(source_file, table_ref, job_config=job_config)
 
+    logger.info(f"Uploading {file_path} to BigQuery...")
     job.result()  # Wait for the job to complete
     
     table = client.get_table(table_ref)
     logger.success(f"Loaded {job.output_rows} rows into {GCP_DATASET_ID}.{table_name}.")
     logger.info(f"Total rows in table: {table.num_rows}")
 
+def sync_local_to_cloud(raw_dir: str = "data/raw", structured_dir: str = "data/structured"):
+    """
+    Scans local directories and syncs all Parquet/CSV files to BigQuery.
+    Note: Raw JSONs can be manually uploaded to GCS if needed, but the primary 
+    pipeline focus is now on structured Parquet ingestion.
+    """
+    logger.info("Starting Batch Local-to-GCP Sync...")
+    
+    # Sync Structured Files to BigQuery
+    struct_path = Path(structured_dir)
+    # Check both structured dir and raw dir (where scraper might save output)
+    data_paths = [Path(raw_dir), Path(structured_dir)]
+    
+    for base_path in data_paths:
+        if not base_path.exists():
+            continue
+            
+        # Prioritize Parquet
+        files = list(base_path.glob("**/*.parquet")) + list(base_path.glob("**/*.csv"))
+        logger.info(f"Scanning {base_path}: Found {len(files)} files to load.")
+        
+        for f in files:
+            load_to_bigquery(str(f), table_name="comments_structured")
+
+    logger.success("Batch Sync Complete.")
+
 if __name__ == "__main__":
-    # Example test (requires valid GCP credentials)
-    # upload_to_gcs("data/raw/2026/02/mexico/1rcb63u_manual.json", "1rcb63u")
-    pass
+    import sys
+    if "--sync" in sys.argv:
+        sync_local_to_cloud()
+    else:
+        logger.info("Direct execution: Use --sync to run the batch local-to-cloud pipeline.")

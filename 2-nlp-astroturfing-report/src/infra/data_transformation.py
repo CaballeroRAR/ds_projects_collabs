@@ -32,23 +32,23 @@ def flatten_reddit_json(json_path: str) -> pd.DataFrame:
             "author_created_utc": author_info.get("created_utc"),
             "author_comment_karma": author_info.get("comment_karma"),
             "author_link_karma": author_info.get("link_karma"),
-            "author_is_enriched": author_info.get("is_enriched", False)
+            
         }
         rows.append(row)
         
     return pd.DataFrame(rows)
 
-def transform_all_raw_to_structured(raw_dir: str, output_dir: str, format: str = "parquet"):
+def transform_all_raw_to_structured(raw_dir: str = "data/raw", output_dir: str = "data/structured", format: str = "csv"):
     """
     Finds all JSON files in the raw directory and converts them 
-    to a tabular format (CSV or Parquet).
+    to a single master tabular file (CSV or Parquet).
     """
     raw_path = Path(raw_dir)
     json_files = list(raw_path.glob("**/*.json"))
     
     if not json_files:
         logger.warning(f"No JSON files found in {raw_dir}")
-        return
+        return None
 
     all_dfs = []
     for json_file in json_files:
@@ -57,7 +57,7 @@ def transform_all_raw_to_structured(raw_dir: str, output_dir: str, format: str =
         all_dfs.append(df)
         
     if not all_dfs:
-        return
+        return None
 
     final_df = pd.concat(all_dfs, ignore_index=True)
     os.makedirs(output_dir, exist_ok=True)
@@ -67,10 +67,12 @@ def transform_all_raw_to_structured(raw_dir: str, output_dir: str, format: str =
         final_df.to_parquet(output_path, index=False)
     else:
         output_path = os.path.join(output_dir, "transformed_comments.csv")
-        final_df.to_csv(output_path, index=False)
+        # Use quoting=csv.QUOTE_ALL (1) and escapechar to handle newlines and special characters
+        import csv
+        final_df.to_csv(output_path, index=False, quoting=csv.QUOTE_ALL)
         
-    print(f"Transformation complete. Saved to {output_path}")
-    logger.success(f"Transformation complete. Saved to {output_path}")
+    logger.success(f"Master transformation complete. Saved to {output_path}")
+    return output_path
 
 if __name__ == "__main__":
     # Example usage:

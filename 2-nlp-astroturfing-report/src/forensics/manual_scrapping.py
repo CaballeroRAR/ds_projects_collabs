@@ -256,20 +256,39 @@ def run_integrated_flow(url: str):
         logger.error("Scraping failed. Aborting flow.")
         return
 
-    submission_id = Path(raw_file).stem.split('_')[0]
+    # 2. Transform all raw JSONs to the master CSV (data/structured/transformed_comments.csv)
+    from src.infra.data_transformation import transform_all_raw_to_structured
+    logger.info("Updating master structured record...")
+    master_csv = transform_all_raw_to_structured(raw_dir="data/raw", output_dir="data/structured", format="csv")
     
-    # 2. Transform to Structured (CSV)
-    logger.info("Transforming raw JSON to tabular CSV...")
-    df = flatten_reddit_json(raw_file)
-    csv_output = raw_file.replace(".json", ".csv")
-    df.to_csv(csv_output, index=False)
-    logger.success(f"Transformation complete: {csv_output}")
+    if not master_csv:
+        logger.error("Transformation failed. Aborting flow.")
+        return
 
-    # 3. Load Structured to BigQuery
-    logger.info("Loading structured data to BigQuery...")
-    load_to_bigquery(csv_output, table_name="comments_structured")
+    # 3. Load Structured Master CSV to BigQuery
     
-    logger.success("Integrated flow completed successfully.")
+    logger.info(f"Loading master structured file to BigQuery: {master_csv}")
+    
+    # modify load_to_bigquery call to use WRITE_TRUNCATE for the master file to ensure local-cloud parity
+    from google.cloud import bigquery
+    client = get_bigquery_client()
+    dataset_ref = client.dataset(GCP_DATASET_ID)
+    table_ref = dataset_ref.table("comments_structured")
+
+    job_config = bigquery.LoadJobConfig(
+        source_format=bigquery.SourceFormat.CSV,
+        skip_leading_rows=1,
+        autodetect=True,
+        write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE,
+        quote_character='"',
+        allow_quoted_newlines=True
+    )
+
+    with open(master_csv, "rb") as source_file:
+        job = client.load_table_from_file(source_file, table_ref, job_config=job_config)
+    
+    job.result()
+    logger.success(f"Integrated flow completed. Master CSV synced to BigQuery: {master_csv}")
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
