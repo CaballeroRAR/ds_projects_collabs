@@ -29,7 +29,18 @@ def get_json(url: str, params: Dict = None) -> Dict:
         if len(parts) > 1:
             url += "?" + parts[1]
         
-    headers = {"User-Agent": USER_AGENT}
+    # Standard browser headers to bypass GCP IP blocks and 403s
+    headers = {
+        "User-Agent": USER_AGENT,
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+        "Connection": "keep-alive",
+        "Upgrade-Insecure-Requests": "1",
+        "Sec-Fetch-Dest": "document",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "none",
+        "Sec-Fetch-User": "?1",
+    }
     try:
         response = requests.get(url, headers=headers, params=params, timeout=15)
         if response.status_code == 429:
