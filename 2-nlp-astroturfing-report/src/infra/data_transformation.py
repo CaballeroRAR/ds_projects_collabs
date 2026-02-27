@@ -31,8 +31,8 @@ def flatten_reddit_json(json_path: str) -> pd.DataFrame:
             "author_is_deleted": author_info.get("is_deleted", False),
             "author_created_utc": author_info.get("created_utc"),
             "author_comment_karma": author_info.get("comment_karma"),
-            "author_link_karma": author_info.get("link_karma"),
-            
+            "author_post_karma": author_info.get("link_karma"),
+            "author_is_enriched": author_info.get("is_enriched", False)
         }
         rows.append(row)
         
