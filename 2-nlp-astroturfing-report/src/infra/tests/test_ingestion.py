@@ -2,8 +2,8 @@ import os
 from src.infra.gcp_ingestion import load_to_bigquery
 from loguru import logger
 
-# Path to the already transformed CSV
-CSV_PATH = "data/raw/2026/02/mexico/1rcb63u_manual.csv"
+# Path to the already transformed Master CSV
+CSV_PATH = "data/structured/transformed_comments.csv"
 
 def run_single_ingestion():
     if not os.path.exists(CSV_PATH):

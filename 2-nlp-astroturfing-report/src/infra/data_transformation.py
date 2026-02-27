@@ -38,40 +38,38 @@ def flatten_reddit_json(json_path: str) -> pd.DataFrame:
         
     return pd.DataFrame(rows)
 
-def transform_all_raw_to_structured(raw_dir: str = "data/raw", output_dir: str = "data/structured", format: str = "csv"):
+def transform_to_structured(input_path: str = "data/raw", output_dir: str = "data/structured", format: str = "csv"):
     """
-    Finds all JSON files in the raw directory and converts them 
-    to a single master tabular file (CSV or Parquet).
+    Transforms Reddit JSON(s) to tabular format.
+    - If input_path is a directory: Scans all JSONs and merges into 'transformed_comments.[format]'.
+    - If input_path is a file: Transforms that specific file to '[submission_id].[format]'.
     """
-    raw_path = Path(raw_dir)
-    json_files = list(raw_path.glob("**/*.json"))
-    
-    if not json_files:
-        logger.warning(f"No JSON files found in {raw_dir}")
-        return None
-
-    all_dfs = []
-    for json_file in json_files:
-        logger.info(f"Processing {json_file.name}...")
-        df = flatten_reddit_json(str(json_file))
-        all_dfs.append(df)
-        
-    if not all_dfs:
-        return None
-
-    final_df = pd.concat(all_dfs, ignore_index=True)
+    path = Path(input_path)
     os.makedirs(output_dir, exist_ok=True)
     
-    if format.lower() == "parquet":
-        output_path = os.path.join(output_dir, "transformed_comments.parquet")
-        final_df.to_parquet(output_path, index=False)
+    if path.is_file():
+        logger.info(f"Processing single file: {path.name}")
+        df = flatten_reddit_json(str(path))
+        output_name = f"{path.stem.split('_')[0]}.{format.lower()}"
+        output_path = os.path.join(output_dir, output_name)
     else:
-        output_path = os.path.join(output_dir, "transformed_comments.csv")
-        # Use quoting=csv.QUOTE_ALL (1) and escapechar to handle newlines and special characters
+        logger.info(f"Processing all JSONs in directory: {input_path}")
+        json_files = list(path.glob("**/*.json"))
+        if not json_files:
+            logger.warning(f"No JSON files found in {input_path}")
+            return None
+            
+        all_dfs = [flatten_reddit_json(str(f)) for f in json_files]
+        df = pd.concat(all_dfs, ignore_index=True)
+        output_path = os.path.join(output_dir, f"transformed_comments.{format.lower()}")
+
+    if format.lower() == "parquet":
+        df.to_parquet(output_path, index=False)
+    else:
         import csv
-        final_df.to_csv(output_path, index=False, quoting=csv.QUOTE_ALL)
+        df.to_csv(output_path, index=False, quoting=csv.QUOTE_ALL)
         
-    logger.success(f"Master transformation complete. Saved to {output_path}")
+    logger.success(f"Transformation complete. Saved to {output_path}")
     return output_path
 
 if __name__ == "__main__":

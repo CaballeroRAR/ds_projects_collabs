@@ -9,10 +9,10 @@ from pathlib import Path
 from loguru import logger
 from src.forensics.trust_scoring import calculate_trust_score
 from src.infra.data_transformation import flatten_reddit_json
-from src.infra.gcp_ingestion import upload_to_gcs, load_to_bigquery
+from src.infra.gcp_ingestion import upload_to_gcs, load_to_bigquery, get_bigquery_client, GCP_DATASET_ID
 
 
-# Essential for the .json trick: Use a unique/legit looking User-Agent to avoid 429 errors
+# Essential for Direct JSON Access: Use a unique/legit looking User-Agent to avoid 429 errors
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 AstroturfingReport/1.0"
 
 def get_json(url: str, params: Dict = None) -> Dict:
@@ -244,11 +244,13 @@ def scrape_submission_url(url: str):
     
     return save_raw_data(subreddit_name, report_data)
 
-def run_integrated_flow(url: str):
+def run_integrated_flow(url: str, mode: str = "master"):
     """
-    Complete flow: Scrape -> Transform -> Upload GCS -> Load BigQuery
+    Complete flow: Scrape -> Transform -> Load BigQuery
+    - mode="master": Updates data/structured/transformed_comments.csv and replaces BigQuery table.
+    - mode="single": Creates data/structured/[submission_id].csv and appends to BigQuery table.
     """
-    logger.info(f"Starting Integrated Cloud Flow for: {url}")
+    logger.info(f"Starting Integrated Cloud Flow (Mode: {mode}) for: {url}")
     
     # 1. Scrape
     raw_file = scrape_submission_url(url)
@@ -256,21 +258,26 @@ def run_integrated_flow(url: str):
         logger.error("Scraping failed. Aborting flow.")
         return
 
-    # 2. Transform all raw JSONs to the master CSV (data/structured/transformed_comments.csv)
-    from src.infra.data_transformation import transform_all_raw_to_structured
-    logger.info("Updating master structured record...")
-    master_csv = transform_all_raw_to_structured(raw_dir="data/raw", output_dir="data/structured", format="csv")
+    # 2. Transform
+    from google.cloud import bigquery
+    from src.infra.data_transformation import transform_to_structured
     
-    if not master_csv:
+    if mode == "master":
+        logger.info("Updating master structured record...")
+        structured_file = transform_to_structured(input_path="data/raw", output_dir="data/structured", format="csv")
+        write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
+    else:
+        logger.info(f"Transforming single submission: {raw_file}")
+        structured_file = transform_to_structured(input_path=raw_file, output_dir="data/structured", format="csv")
+        write_disposition = bigquery.WriteDisposition.WRITE_APPEND
+    
+    if not structured_file:
         logger.error("Transformation failed. Aborting flow.")
         return
 
-    # 3. Load Structured Master CSV to BigQuery
+    # 3. Load Structured CSV to BigQuery
+    logger.info(f"Loading to BigQuery: {structured_file} (Disposition: {write_disposition})")
     
-    logger.info(f"Loading master structured file to BigQuery: {master_csv}")
-    
-    # modify load_to_bigquery call to use WRITE_TRUNCATE for the master file to ensure local-cloud parity
-    from google.cloud import bigquery
     client = get_bigquery_client()
     dataset_ref = client.dataset(GCP_DATASET_ID)
     table_ref = dataset_ref.table("comments_structured")
@@ -279,20 +286,22 @@ def run_integrated_flow(url: str):
         source_format=bigquery.SourceFormat.CSV,
         skip_leading_rows=1,
         autodetect=True,
-        write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE,
+        write_disposition=write_disposition,
         quote_character='"',
         allow_quoted_newlines=True
     )
 
-    with open(master_csv, "rb") as source_file:
+    with open(structured_file, "rb") as source_file:
         job = client.load_table_from_file(source_file, table_ref, job_config=job_config)
     
     job.result()
-    logger.success(f"Integrated flow completed. Master CSV synced to BigQuery: {master_csv}")
+    logger.success(f"Integrated flow completed. Data synced to BigQuery: {structured_file}")
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        target_url = sys.argv[1]
-        run_integrated_flow(target_url)
-    else:
-        logger.warning("No URL provided. Usage: python -m src.forensics.manual_scrapping [REDDIT_URL]")
+    import argparse
+    parser = argparse.ArgumentParser(description="Reddit Scraper Integrated Flow")
+    parser.add_argument("url", help="Reddit submission URL")
+    parser.add_argument("--mode", choices=["master", "single"], default="master", help="In master mode, all data is consolidated and BigQuery is replaced. In single mode, only this thread is processed and appended.")
+    
+    args = parser.parse_args()
+    run_integrated_flow(args.url, mode=args.mode)
