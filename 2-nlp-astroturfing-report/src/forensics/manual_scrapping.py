@@ -17,20 +17,24 @@ USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTM
 
 def get_json(url: str, params: Dict = None) -> Dict:
     """Fetch JSON data from a Reddit URL with .json"""
-    # Handle both full URLs and paths
+    # 1. Normalize URL: ensure it starts with http and handle .json extension
     if not url.startswith("http"):
         url = f"https://www.reddit.com{url}"
         
-    if not url.split("?")[0].endswith(".json"):
-        # Insert .json before query parameters if they exist
+    # Remove trailing slash before checking .json
+    clean_url = url.split("?")[0].rstrip("/")
+    if not clean_url.endswith(".json"):
         parts = url.split("?")
-        url = parts[0].rstrip("/") + ".json"
+        url = parts[0].rstrip("/") + "/.json" # Adding / before .json is often more reliable on Reddit
         if len(parts) > 1:
             url += "?" + parts[1]
         
     headers = {"User-Agent": USER_AGENT}
     try:
-        response = requests.get(url, headers=headers, params=params, timeout=10)
+        response = requests.get(url, headers=headers, params=params, timeout=15)
+        if response.status_code == 429:
+            logger.error(f"Rate limited (429) by Reddit. URL: {url}. Please wait or check proxy.")
+            return None
         response.raise_for_status()
         return response.json()
     except Exception as e:
@@ -259,43 +263,28 @@ def run_integrated_flow(url: str, mode: str = "master"):
         return
 
     # 2. Transform
-    from google.cloud import bigquery
     from src.infra.data_transformation import transform_to_structured
     
     if mode == "master":
         logger.info("Updating master structured record...")
         structured_file = transform_to_structured(input_path="data/raw", output_dir="data/structured", format="csv")
-        write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
+        write_disposition = "WRITE_TRUNCATE"
     else:
         logger.info(f"Transforming single submission: {raw_file}")
         structured_file = transform_to_structured(input_path=raw_file, output_dir="data/structured", format="csv")
-        write_disposition = bigquery.WriteDisposition.WRITE_APPEND
+        write_disposition = "WRITE_APPEND"
     
     if not structured_file:
         logger.error("Transformation failed. Aborting flow.")
         return
 
-    # 3. Load Structured CSV to BigQuery
-    logger.info(f"Loading to BigQuery: {structured_file} (Disposition: {write_disposition})")
-    
-    client = get_bigquery_client()
-    dataset_ref = client.dataset(GCP_DATASET_ID)
-    table_ref = dataset_ref.table("comments_structured")
-
-    job_config = bigquery.LoadJobConfig(
-        source_format=bigquery.SourceFormat.CSV,
-        skip_leading_rows=1,
-        autodetect=True,
-        write_disposition=write_disposition,
-        quote_character='"',
-        allow_quoted_newlines=True
-    )
-
-    with open(structured_file, "rb") as source_file:
-        job = client.load_table_from_file(source_file, table_ref, job_config=job_config)
-    
-    job.result()
-    logger.success(f"Integrated flow completed. Data synced to BigQuery: {structured_file}")
+    # 3. Load Structured CSV to BigQuery via Shared Infra
+    logger.info(f"Syncing to BigQuery via Infra (Mode: {write_disposition})")
+    try:
+        load_to_bigquery(structured_file, table_name="comments_structured", write_disposition=write_disposition)
+        logger.success(f"Integrated flow completed. Data synced to BigQuery: {structured_file}")
+    except Exception as e:
+        logger.error(f"BigQuery Sync Failed: {e}")
 
 if __name__ == "__main__":
     import argparse

@@ -40,7 +40,7 @@ def upload_to_gcs(local_file_path: str, submission_id: str):
     logger.success(f"File {local_file_path} uploaded to gs://{bucket_name}/{blob_name}")
     return f"gs://{bucket_name}/{blob_name}"
 
-def load_to_bigquery(file_path: str, table_name: str = "comments_structured"):
+def load_to_bigquery(file_path: str, table_name: str = "comments_structured", write_disposition: str = "WRITE_APPEND"):
     """
     Loads a CSV or Parquet file into BigQuery.
     """
@@ -52,7 +52,7 @@ def load_to_bigquery(file_path: str, table_name: str = "comments_structured"):
     
     job_config = bigquery.LoadJobConfig(
         autodetect=True,
-        write_disposition=bigquery.WriteDisposition.WRITE_APPEND,
+        write_disposition=write_disposition,
     )
     
     if is_parquet:
@@ -81,25 +81,8 @@ def sync_master_to_bigquery(master_csv: str = "data/structured/transformed_comme
         logger.error(f"Master CSV not found: {master_csv}")
         return
 
-    logger.info(f"Syncing Master CSV to BigQuery (WRITE_TRUNCATE): {master_csv}")
-    
-    client = get_bigquery_client()
-    dataset_ref = client.dataset(GCP_DATASET_ID)
-    table_ref = dataset_ref.table("comments_structured")
-
-    job_config = bigquery.LoadJobConfig(
-        source_format=bigquery.SourceFormat.CSV,
-        skip_leading_rows=1,
-        autodetect=True,
-        write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE,
-        quote_character='"',
-        allow_quoted_newlines=True
-    )
-
-    with open(master_csv, "rb") as source_file:
-        job = client.load_table_from_file(source_file, table_ref, job_config=job_config)
-    
-    job.result()
+    logger.info(f"Syncing Master CSV to BigQuery: {master_csv}")
+    load_to_bigquery(master_csv, table_name="comments_structured", write_disposition="WRITE_TRUNCATE")
     logger.success(f"Master CSV sync complete.")
 
 def sync_local_to_cloud(raw_dir: str = "data/raw", structured_dir: str = "data/structured"):
