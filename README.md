@@ -111,9 +111,10 @@ A forensic Data Science investigation aimed at quantifying and analyzing the aut
 ![Transformers](https://img.shields.io/badge/NLP-Transformers-yellow?style=flat&logo=huggingface&logoColor=white)
 ![BigQuery](https://img.shields.io/badge/BigQuery-Analytics-blue?style=flat&logo=google-cloud&logoColor=white)
 
-## Objectives
-- **Account Segmentation:** Using K-Means and feature scaling to categorize users into distinct behavioral clusters.
-- **Sentiment Forensics:** Comparing sentiment profiles between established accounts and "throwaway" or deleted entities to find significant deviations.
+## Objectives & Architecture
+- **Account Segmentation:** Using K-Means and manual feature scaling (Trust Score) to categorize users into distinct behavioral clusters.
+- **Medallion Architecture:** Utilizing `google-cloud-bigquery` to structure ingested data into Bronze, Silver, and Gold layers.
+- **Deep NLP Processing:** Running `paraphrase-multilingual-MiniLM-L12-v2` (BERT) to embed Spanish/English comments, `UMAP` + `HDBSCAN` to automatically cluster astroturfing narratives, and `XLM-RoBERTa` for sentiment tracking. 
 - **Temporal Mining:** Target subreddits during specific events to track the evolution of bot-narratives over time.
 
-**Skills to beDemonstrated:** NLP (Sentiment/Topic Modeling), Metadata Forensics, Cloud Data Engineering (GCP), Network Analysis, Behavioral Clustering, API Mining (PRAW).
+**Skills Demonstrated:** Advanced NLP (Multilingual BERT, HDBSCAN, Sentiment), Cloud Data Engineering (GCP Medallion Architecture, BigQuery), Network Forensics, Behavioral Clustering, API Mining (Direct JSON extraction).
