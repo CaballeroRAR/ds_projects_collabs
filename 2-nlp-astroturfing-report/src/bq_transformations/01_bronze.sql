@@ -1,4 +1,4 @@
-CREATE OR REPLACE VIEW `{{project_id}}.{{dataset_id}}.bronze_comments` AS
+CREATE OR REPLACE VIEW `{{project_id}}.{{dataset_id}}.bronze` AS
 SELECT *
 FROM `{{project_id}}.{{dataset_id}}.comments_structured`;
 
