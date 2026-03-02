@@ -1,5 +1,7 @@
+-- Create silver table with cleaned and deduplicated data
 CREATE OR REPLACE TABLE `{{project_id}}.{{dataset_id}}.silver_comments_clean` AS
 WITH deduplicated AS (
+    -- Remove duplicates by keeping only the most recent ingested row per comment
     SELECT 
         *,
         ROW_NUMBER() OVER(PARTITION BY comment_id ORDER BY CAST(created_utc AS FLOAT64) DESC) as rn
