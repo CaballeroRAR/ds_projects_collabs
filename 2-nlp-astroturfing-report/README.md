@@ -62,5 +62,26 @@ If you strictly want to append a single thread without rebuilding the entire mas
 python -m src.forensics.manual_scrapping "https://www.reddit.com/r/mexico/comments/..." --mode single
 ```
 
+## Data Dictionary
+The `transformed_comments.csv` (and resulting `comments_structured` table in BigQuery) has the following schema:
+
+| Column Name | Type | Description |
+| :--- | :--- | :--- |
+| `submission_id` | `STRING` | The unique Reddit ID for the overall thread. |
+| `comment_id` | `STRING` | The unique Reddit ID for the specific comment. |
+| `parent_id` | `STRING` | The ID of the comment or submission this comment is replying to (e.g. `t1_...` or `t3_...`). |
+| `body` | `STRING` | The actual text content of the comment. |
+| `score` | `INTEGER` | The upvotes minus downvotes for the comment. |
+| `controversiality` | `INTEGER` | Reddit's flag (0 or 1) indicating if the comment has a large number of both upvotes and downvotes. |
+| `created_utc` | `FLOAT` | Unix timestamp of when the comment was created. |
+| `trust_score` | `INTEGER` | Custom calculated score (0-100) based on account age and karma. 0 = deleted, 10 = suspicious, 50 = neutral, 100 = established. |
+| `author_name` | `STRING` | The Reddit username of the author. If [deleted] account was deleted, removed, or banned at the time of scraping. |
+| `author_is_deleted`| `BOOLEAN` | Whether the author's account was deleted, removed, or banned at the time of scraping. |
+| `author_created_utc`| `FLOAT` | Unix timestamp of when the author's account was created. If null, account was deleted, removed, or banned at the time of scraping. |
+| `author_comment_karma`| `INTEGER` | The total comment karma of the author. If null, account was deleted, removed, or banned at the time of scraping. |
+| `author_post_karma`| `INTEGER` | The total post/link karma of the author. If null, account was deleted, removed, or banned at the time of scraping. |
+| `author_is_enriched`| `BOOLEAN` | Flag indicating if the scraper successfully fetched full author details. |
+
+
 ## Next Steps: NLP Phase (Pending)
 Phase 2 of this project will involve pulling the raw text data from BigQuery to perform Clustering (e.g., HDBSCAN) and Sentiment Analysis to identify coordinated astroturfing clusters.
