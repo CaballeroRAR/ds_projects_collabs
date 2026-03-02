@@ -12,7 +12,11 @@ graph TD
     B -->|Fetch JSON & Enrich| C[data/raw/]
     C -->|Consolidation| D(data_transformation.py)
     D -->|Flatten| E[data/structured/transformed_comments.csv]
-    E -->|GCP Ingestion| F[(Google BigQuery: comments_structured)]
+    E -->|GCP Ingestion| F[(BigQuery: comments_structured)]
+    F -->|Bronze View| G[(BigQuery: bronze)]
+    G -->|Silver Clean| H[(BigQuery: silver_comments_clean)]
+    H -->|Gold Profiles| I[(BigQuery: gold_author_profiles)]
+    H -->|Gold NLP Input| J[(BigQuery: gold_nlp)]
 ```
 
 ### Key Components
@@ -20,6 +24,7 @@ graph TD
 1. **Scraper (`src/forensics/manual_scrapping.py`)**: Uses a "Direct JSON Access" method to bypass API limits. It also performs **Author Enrichment**, fetching account age and karma to calculate a customized **Trust Score**.
 2. **Transformer (`src/infra/data_transformation.py`)**: Flattens nested Reddit reply trees and applies robust CSV formatting (quoting all fields) to cleanly handle complex, multi-line comment text.
 3. **Ingestion Engine (`src/infra/gcp_ingestion.py`)**: Seamlessly connects your local structured data to BigQuery using `google-cloud-bigquery`.
+4. **GCP Transformations (`src/infra/run_transformations.py`)**: Executes a Medallion Architecture (Bronze -> Silver -> Gold) inside BigQuery directly from the local environment.
 
 ## Setup & Prerequisites
 
@@ -62,6 +67,15 @@ If you strictly want to append a single thread without rebuilding the entire mas
 python -m src.forensics.manual_scrapping "https://www.reddit.com/r/mexico/comments/..." --mode single
 ```
 
+### 4. GCP Transformations (Medallion Architecture)
+
+After your raw data is ingested into BigQuery as `comments_structured`, run the transformation pipeline to build the Bronze, Silver, and Gold conceptual layers:
+
+```powershell
+python src/infra/run_transformations.py
+```
+*Alternatively, you can manage and run all 4 steps directly inside `notebook/control_notebook.ipynb`.*
+
 ## Data Dictionary
 The `transformed_comments.csv` (and resulting `comments_structured` table in BigQuery) has the following schema:
 
@@ -83,5 +97,7 @@ The `transformed_comments.csv` (and resulting `comments_structured` table in Big
 | `author_is_enriched`| `BOOLEAN` | Flag indicating if the scraper successfully fetched full author details. |
 
 
-## Next Steps: NLP Phase (Pending)
-Phase 2 of this project will involve pulling the raw text data from BigQuery to perform Clustering (e.g., HDBSCAN) and Sentiment Analysis to identify coordinated astroturfing clusters.
+## Next Steps: Phase 2 (NLP Analysis)
+Data collection and structural transformations (Medallion architecture) are complete. 
+
+The next phase leverages the `gold_nlp` BigQuery table to perform **Clustering (e.g., HDBSCAN)**, **Sentiment Analysis**, and potentially **Topic Modeling**. The goal is to identify coordinated astroturfing clusters and merge these findings back with the original dataset using the `comment_id` primary key for a comprehensive final report.
