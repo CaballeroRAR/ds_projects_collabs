@@ -167,7 +167,7 @@ def plot_trust_wordclouds(df: pd.DataFrame):
     custom_stopwords.update([
         "deleted", "removed", "comment", "post", "reddit", "people", 
         "one", "will", "say", "think", "make", "know", "see", "even", 
-        "time", "really", "want", "going", "much", "well", "lo", "que", "y", "la", "jaja"
+        "time", "really", "want", "going", "much", "well", "lo", "que", "y", "la", "jaja", "los", "de", "si", "Que", "el"
     ])
     
     fig, axes = plt.subplots(1, 2, figsize=(16, 8))
