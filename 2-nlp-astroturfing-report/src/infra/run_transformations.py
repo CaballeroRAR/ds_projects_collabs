@@ -24,7 +24,10 @@ def run_sql_file(client, file_path):
 
 def run_all_transformations():
     client = bigquery.Client(project=GCP_PROJECT_ID)
-    sql_dir = Path("src/bq_transformations")
+    
+    # Get absolute path relative to this script's location
+    current_script_dir = Path(__file__).parent
+    sql_dir = current_script_dir.parent / "bq_sql_transformations"
     
     sql_files = sorted(sql_dir.glob("*.sql"))
     if not sql_files:
