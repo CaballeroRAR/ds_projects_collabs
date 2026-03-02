@@ -99,10 +99,10 @@ Modular Python cleaning pipeline, clean datasets in Pickle format, trained clust
 ## Overview
 A forensic Data Science investigation aimed at quantifying and analyzing the authenticity of public discourse on social media. By combining metadata heuristics and Natural Language Processing (NLP), the project identifies suspicious account behavior, detects bot-driven "astroturfing" campaigns, and segments organic sentiment from manufactured consensus.
 
-## Focus Areas
-- **Metadata Forensics:** Building a multi-dimensional "Trust Score" based on account age, karma distributions, and status patterns to separate human members from suspect clusters.
-- **Narrative Analysis:** Utilizing advanced NLP to detect topic inflation and sentiment manipulation across different trust segments.
-- **Network Health:** Investigating "Echo Chambers" through reply-tree mapping and network statistics to identify isolated interaction loops among low-trust accounts.
+## Dataset
+- **Source:** Reddit Threads (Scraped via Direct JSON Access without relying on official API)
+- **Scope:** Comments and Author Information
+- **Features Extracted:** Body text, karma scores, account age, controversiality, etc.
 
 ## Tech Stack
 ![Python](https://img.shields.io/badge/Python-Medium-182625?style=flat&logo=python&logoColor=white)
@@ -111,10 +111,57 @@ A forensic Data Science investigation aimed at quantifying and analyzing the aut
 ![Transformers](https://img.shields.io/badge/NLP-Transformers-yellow?style=flat&logo=huggingface&logoColor=white)
 ![BigQuery](https://img.shields.io/badge/BigQuery-Analytics-blue?style=flat&logo=google-cloud&logoColor=white)
 
-## Objectives & Architecture
-- **Account Segmentation:** Using K-Means and manual feature scaling (Trust Score) to categorize users into distinct behavioral clusters.
-- **Medallion Architecture:** Utilizing `google-cloud-bigquery` to structure ingested data into Bronze, Silver, and Gold layers.
-- **Deep NLP Processing:** Running `paraphrase-multilingual-MiniLM-L12-v2` (BERT) to embed Spanish/English comments, `UMAP` + `HDBSCAN` to automatically cluster astroturfing narratives, and `XLM-RoBERTa` for sentiment tracking. 
-- **Temporal Mining:** Target subreddits during specific events to track the evolution of bot-narratives over time.
+## Methodology
+
+### Data Collection & Ingestion (Phase 1)
+- Scraped deeply nested Reddit comment trees using local Python scripts to bypass API limits (`manual_scrapping.py`).
+- Extracted and computed author "Trust Scores" using account metrics like karma and creation date constraints.
+- Flattened the extracted JSON into CSV outputs format (`data_transformation.py`).
+- Ingested the locally cleaned CSV into Google BigQuery as the `comments_structured` table (`gcp_ingestion.py`).
+
+### Data Transformations - Medallion Architecture (Phase 2)
+- Built a GCP transformation pipeline routing the raw ingested tables into conceptual layers:
+  - **Bronze:** Exposes raw ingested tables.
+  - **Silver:** Cleans, deduplicates, and strongly-types the comments (`silver_comments_clean`).
+  - **Gold:** Aggregates data by author profiles (`gold_author_profiles`) and formats clean data for NLP (`gold_nlp`).
+
+### Deep NLP Processing (Phase 3)
+- Orchestrated heavy ML operations out-of-core using mapped Google Colab Notebooks with GPU processing.
+- Pulled the `gold_nlp` tables back from BigQuery.
+- Used `paraphrase-multilingual-MiniLM-L12-v2` (BERT) to embed Spanish/English comments.
+- Mapped comments to clustered narrative structures using `UMAP` dimensionality reduction and `HDBSCAN` density-based clustering.
+- Evaluated emotional trajectory with Multilingual `XLM-RoBERTa` for sentiment tracking.
+- Synced the unified `gold_nlp_results` dataframe back to BigQuery with their assigned cluster IDs and sentiment probabilities.
+
+## Project Structure
+```
+2-nlp-astroturfing-report/
+├── src/
+│   ├── forensics/
+│   │   ├── manual_scrapping.py     # Local Reddit JSON Scraper
+│   │   └── trust_scoring.py        # Karma/Age heuristics 
+│   ├── infra/
+│   │   ├── data_transformation.py  # Flattens nested JSON trees
+│   │   ├── gcp_ingestion.py        # BigQuery integration
+│   │   └── run_transformations.py  # Orchestrates SQL Medallion scripts
+│   ├── bq_sql_transformations/
+│   │   ├── 01_bronze.sql           
+│   │   ├── 02_silver.sql           
+│   │   ├── 03_gold.sql             
+│   │   └── 04_gold_nlp.sql         
+│   └── nlp/
+│       ├── data_loader.py          # BigQuery cloud I/O
+│       ├── embeddings_cluster.py   # UMAP & HDBSCAN
+│       ├── sentiment_analysis.py   # HuggingFace RoBERTa
+│       └── nlp_pipeline.py         # Full NLP orchestration
+├── notebook/
+│   └── control_notebook.ipynb      # Central control interface (Local + Colab)
+├── data/                           # Ignored local raw/structured CSV files
+├── requirements.txt
+└── README.md
+```
+
+## Deliverables
+Detailed forensics and extraction python scripts, BigQuery integrated Medallion tables, scalable multidimensional ML models (Embeddings, Clustering, Sentiment), and an analytical report detailing astroturfing narratives and behaviors.
 
 **Skills Demonstrated:** Advanced NLP (Multilingual BERT, HDBSCAN, Sentiment), Cloud Data Engineering (GCP Medallion Architecture, BigQuery), Network Forensics, Behavioral Clustering, API Mining (Direct JSON extraction).
