@@ -75,7 +75,10 @@ def print_cluster_narratives(df: pd.DataFrame):
     print("CLUSTER NARRATIVE EXAMPLES")
     print("="*70)
     
-    noise_df = df[df['cluster_desc'] == 'Noise (Organic)']
+    # Filter out empty or deleted comments from our sample pool
+    valid_text_df = df[~df['body'].isin(['[deleted]', '[removed]'])]
+    
+    noise_df = valid_text_df[valid_text_df['cluster_desc'] == 'Noise (Organic)']
     if not noise_df.empty:
         print("\n[Noise (Organic): Uncoordinated Chatter]")
         # Removed random_state to ensure true randomness on each run
@@ -83,10 +86,10 @@ def print_cluster_narratives(df: pd.DataFrame):
         for s in noise_samples:
             print(f"  - {s[:120]}...")
         
-    clusters = sorted([c for c in df['cluster_desc'].unique() if c != 'Noise (Organic)'])
+    clusters = sorted([c for c in valid_text_df['cluster_desc'].unique() if c != 'Noise (Organic)'])
     for c_desc in clusters:
         print(f"\n[{c_desc}: Coordinated Narrative / Copypasta]")
-        samples = df[df['cluster_desc'] == c_desc]['body'].dropna().sample(n=min(3, len(df[df['cluster_desc'] == c_desc])))
+        samples = valid_text_df[valid_text_df['cluster_desc'] == c_desc]['body'].dropna().sample(n=min(3, len(valid_text_df[valid_text_df['cluster_desc'] == c_desc])))
         for s in samples:
             print(f"  - {s[:120]}...")
             
