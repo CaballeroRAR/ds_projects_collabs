@@ -12,33 +12,8 @@ GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID")
 GCP_DATASET_ID = os.getenv("GCP_DATASET_ID", "reddit_scrap")
 # GOOGLE_APPLICATION_CREDENTIALS should be set in environment by dotenv automatically
 
-def get_storage_client():
-    return storage.Client(project=GCP_PROJECT_ID)
-
 def get_bigquery_client():
     return bigquery.Client(project=GCP_PROJECT_ID)
-
-def upload_to_gcs(local_file_path: str, submission_id: str):
-    """
-    Creates a bucket (if not exists) and uploads a file.
-    Bucket name: astroturfing-report-raw-[submission_id]
-    """
-    client = get_storage_client()
-    bucket_name = f"astroturfing-report-raw-{submission_id}".lower()
-    
-    try:
-        bucket = client.get_bucket(bucket_name)
-    except Exception:
-        logger.info(f"Bucket {bucket_name} not found. Creating...")
-        bucket = client.create_bucket(bucket_name, location="US")
-        logger.success(f"Bucket {bucket_name} created.")
-
-    blob_name = f"raw/{Path(local_file_path).name}"
-    blob = bucket.blob(blob_name)
-    blob.upload_from_filename(local_file_path)
-    
-    logger.success(f"File {local_file_path} uploaded to gs://{bucket_name}/{blob_name}")
-    return f"gs://{bucket_name}/{blob_name}"
 
 def load_to_bigquery(file_path: str, table_name: str = "comments_structured", write_disposition: str = "WRITE_APPEND"):
     """
