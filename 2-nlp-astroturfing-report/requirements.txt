@@ -6,3 +6,9 @@ protobuf==7.34.0
 pyarrow
 python-dotenv==1.2.2
 Requests==2.32.5
+sentence-transformers
+transformers
+torch
+umap-learn
+hdbscan
+db-dtypes
