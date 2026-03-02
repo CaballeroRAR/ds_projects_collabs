@@ -9,7 +9,7 @@ from pathlib import Path
 from loguru import logger
 from src.forensics.trust_scoring import calculate_trust_score
 from src.infra.data_transformation import flatten_reddit_json
-from src.infra.gcp_ingestion import upload_to_gcs, load_to_bigquery, get_bigquery_client, GCP_DATASET_ID
+from src.infra.gcp_ingestion import load_to_bigquery, get_bigquery_client, GCP_DATASET_ID
 
 
 # Essential for Direct JSON Access: Use a unique/legit looking User-Agent to avoid 429 errors
@@ -152,71 +152,6 @@ def save_raw_data(subreddit_name: str, report_data: Dict[str, Any]):
     
     logger.info(f"Saved data to {output_file}")
     return output_file
-
-def scrape_manual(subreddit_name: str, sort: str = "top", timeframe: str = "month", limit: int = 10):
-    """
-    Manually scrape a subreddit using .json.
-    Mimics the output structure of the PRAW-based scraper.
-    """
-    if timeframe not in ["week", "month"]:
-        logger.warning("Target selection limited to week/month for project scope.")
-        
-    base_url = f"https://www.reddit.com/r/{subreddit_name}/{sort}/.json"
-    params = {"t": timeframe, "limit": limit}
-    
-    logger.info(f"Manual Scrape: Fetching r/{subreddit_name} ({sort} - {timeframe})")
-    
-    listing = get_json(base_url, params=params)
-    if not listing:
-        return
-
-    # Create output directory
-    current_date = datetime.now()
-    output_dir = os.path.join(
-        "data", "raw", 
-        current_date.strftime("%Y"), 
-        current_date.strftime("%m"), 
-        subreddit_name
-    )
-    os.makedirs(output_dir, exist_ok=True)
-
-    submissions = listing.get("data", {}).get("children", [])
-    logger.info(f"Found {len(submissions)} submissions to process.")
-
-    for sub_item in submissions:
-        sub_data = sub_item["data"]
-        sub_id = sub_data["id"]
-        permalink = sub_data["permalink"]
-        
-        logger.info(f"Processing Submission: {sub_id} | {sub_data['title'][:50]}...")
-        
-        # Fetch the submission plus comments
-        details = get_json(f"https://www.reddit.com{permalink}.json")
-        if not details or len(details) < 2:
-            continue
-            
-        submission_info = details[0]["data"]["children"][0]["data"]
-        comment_listing = details[1]["data"]["children"]
-        
-        # Process comments: Flatten first, then enrich ALL
-        raw_comments = process_comments_raw(comment_listing)
-        processed_comments = enrich_all_comments(raw_comments)
-        
-        # Mimic our PRAW scraper structure
-        report_data = {
-            "submission_id": sub_id,
-            "title": submission_info.get("title"),
-            "score": submission_info.get("score"),
-            "upvote_ratio": submission_info.get("upvote_ratio"),
-            "created_utc": submission_info.get("created_utc"),
-            "url": f"https://www.reddit.com{permalink}",
-            "comments": processed_comments
-        }
-        
-        save_raw_data(subreddit_name, report_data)
-        
-        # Be nice to Reddit's servers
-        time.sleep(2)
 
 def scrape_submission_url(url: str):
     """Scrape a single Reddit submission URL manually."""
