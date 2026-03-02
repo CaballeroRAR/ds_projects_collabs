@@ -112,7 +112,12 @@ The `transformed_comments.csv` (and resulting `comments_structured` table in Big
 | `author_is_enriched`| `BOOLEAN` | Flag indicating if the scraper successfully fetched full author details. |
 
 
-## Next Steps: Phase 3 (Visualization/Reporting)
-The scraping, structural transformations, and advanced NLP (Clustering/Sentiment) are all complete and stored in BigQuery.
+## Phase 3 & 4: NLP Reporting & Visualizations (Complete)
+The raw scraping, structural transformations, and advanced NLP (HDBSCAN Clustering, XLM-RoBERTa Sentiment) are executed and stored in BigQuery `gold_nlp_results`.
 
-The final phase will involve joining `comments_structured`, `gold_author_profiles`, and `gold_nlp_results` to produce the final analytical report and visualizations (e.g., identifying the organic vs astroturfed clusters).
+The final step of the Colab Notebook (`Phase 4`) automatically downloads a unified view of this data and generates localized Python dashboards (`src/visualization/plots.py`) to expose astroturfing:
+1. **The Astroturfing Quadrant**: Scatter plot mapping Sentiment vs. Author Trust.
+2. **Narrative Timeline**: Tracks the volume of specific coordinated narratives over time to detect bot spikes.
+3. **Comment Density Heatmap**: KDE heatmap to find the mass of organic vs astroturfed comments.
+4. **Trust Wordclouds**: Side-by-side comparison of vocabulary used by Trusted vs. Suspicious (Fake) accounts.
+5. **Cluster Trust Breakdown**: Bar chart proving if a specific narrative was synthetically manufactured by low-trust accounts.

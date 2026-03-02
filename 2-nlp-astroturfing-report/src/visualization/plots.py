@@ -102,13 +102,15 @@ def plot_astroturfing_quadrant(df: pd.DataFrame):
     df['numeric_sentiment'] = df['sentiment_label'].map(mapping).fillna(0) * df['sentiment_score']
     
     plt.figure(figsize=(10, 8))
-    sns.scatterplot(data=df, x='numeric_sentiment', y='trust_score', hue='cluster_desc', palette='tab20', alpha=0.6, s=50)
+    # We color by sentiment explicitly, mapping the hue to the sentiment_label instead of the cluster narrative
+    sentiment_palette = {'Positive': 'forestgreen', 'positive': 'forestgreen', 'Neutral': 'silver', 'neutral': 'silver', 'Negative': 'crimson', 'negative': 'crimson'}
+    sns.scatterplot(data=df, x='numeric_sentiment', y='trust_score', hue='sentiment_label', palette=sentiment_palette, alpha=0.7, s=50)
     plt.axhline(50, color='red', linestyle='--', label='Suspicious Trust Threshold')
     plt.axvline(0, color='grey', linestyle='--')
     plt.title("The 'Astroturfing Quadrant' (Sentiment vs. Author Trust)", fontsize=14)
     plt.xlabel("Sentiment (Negative to Positive)", fontsize=12)
     plt.ylabel("Author Trust Score", fontsize=12)
-    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', title="Narrative Explanations")
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', title="Sentiment Sentiment")
     plt.tight_layout()
     plt.show()
 
@@ -167,7 +169,11 @@ def plot_trust_wordclouds(df: pd.DataFrame):
     custom_stopwords.update([
         "deleted", "removed", "comment", "post", "reddit", "people", 
         "one", "will", "say", "think", "make", "know", "see", "even", 
-        "time", "really", "want", "going", "much", "well", "lo", "que", "y", "la", "jaja", "los", "de", "si", "Que", "el"
+        "time", "really", "want", "going", "much", "well", "lo", "que", "y", "la", "jaja", "los", "de", "si", "Que", "el",
+        "en", "las", "un", "una", "por", "con", "para", "esto", "como", "esta",
+        "pero", "te", "se", "del", "al", "mi", "me", "su", "ya", "es", "eso", "así",
+        "just", "like", "get", "got", "can", "good", "thing", "way", "right", "now",
+        "also", "something", "someone", "look", "take", "need"
     ])
     
     fig, axes = plt.subplots(1, 2, figsize=(16, 8))
@@ -195,11 +201,37 @@ def generate_all_plots(df: pd.DataFrame):
         
     sns.set_theme(style="whitegrid")
     
-    # Pre-calculate explicit string labels mapping Cluster IDs to their human meaning 
-    # so every single plot automatically inherits perfect legends!
-    df['cluster_desc'] = df['cluster_id'].apply(
-        lambda x: 'Noise (Organic)' if x == -1 else f'Narrative {x} (Coordinated)'
-    )
+    # Drop rows that don't have NLP results (e.g. they weren't matched in the join)
+    df = df.dropna(subset=['cluster_id']).copy()
+    
+    import re
+    from collections import Counter
+    
+    # Figure out human-readable labels for the narratives based on their top 3 words
+    stop_words = {
+        "this", "that", "with", "from", "what", "where", "when", "your", "have", "they", 
+        "will", "would", "about", "their", "there", "which", "could", "should", "deleted", 
+        "removed", "comment", "people", "really", "going", "think", "because", "just", 
+        "like", "some", "them", "then", "than", "also", "into", "only", "other", "these",
+        "those", "much", "more", "even", "still", "well", "know", "want", "right",
+        # Some Spanish fillers
+        "como", "pero", "para", "esto", "esta", "este", "todo", "nada", "algo", "tiene", "puede"
+    }
+    
+    cluster_mapping = {}
+    for c_id in sorted(df['cluster_id'].unique()):
+        if c_id == -1:
+            cluster_mapping[-1] = 'Noise (Organic)'
+        else:
+            text = " ".join(df[df['cluster_id'] == c_id]['body'].dropna().astype(str).tolist()).lower()
+            words = re.findall(r'\b[a-z]{4,}\b', text)  # Keep words with 4+ letters
+            meaningful_words = [w for w in words if w not in stop_words]
+            top_words = [w[0] for w in Counter(meaningful_words).most_common(3)]
+            theme = ", ".join(top_words) if top_words else "Unknown"
+            cluster_mapping[c_id] = f'Narrative {int(c_id)} ({theme})'
+            
+    # Apply explicit string labels so every single plot automatically visualizes the concept!
+    df['cluster_desc'] = df['cluster_id'].map(cluster_mapping)
     
     print_cluster_narratives(df)
     

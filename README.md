@@ -125,13 +125,14 @@ A forensic Data Science investigation aimed at quantifying and analyzing the aut
   - **Silver:** Cleans, deduplicates, and strongly-types the comments (`silver_comments_clean`).
   - **Gold:** Aggregates data by author profiles (`gold_author_profiles`) and formats clean data for NLP (`gold_nlp`).
 
-### Deep NLP Processing (Phase 3)
+### Deep NLP Processing & Reporting (Phase 3 & 4)
 - Orchestrated heavy ML operations out-of-core using mapped Google Colab Notebooks with GPU processing.
 - Pulled the `gold_nlp` tables back from BigQuery.
 - Used `paraphrase-multilingual-MiniLM-L12-v2` (BERT) to embed Spanish/English comments.
 - Mapped comments to clustered narrative structures using `UMAP` dimensionality reduction and `HDBSCAN` density-based clustering.
 - Evaluated emotional trajectory with Multilingual `XLM-RoBERTa` for sentiment tracking.
 - Synced the unified `gold_nlp_results` dataframe back to BigQuery with their assigned cluster IDs and sentiment probabilities.
+- Generated localized Python visualizations (`src/visualization/plots.py`) combining author trust heuristics and NLP results (Quadrant Maps, Timelines, Actionable Wordclouds) to clearly expose bot-driven narratives.
 
 ## Project Structure
 ```
@@ -148,12 +149,15 @@ A forensic Data Science investigation aimed at quantifying and analyzing the aut
 │   │   ├── 01_bronze.sql           
 │   │   ├── 02_silver.sql           
 │   │   ├── 03_gold.sql             
-│   │   └── 04_gold_nlp.sql         
-│   └── nlp/
-│       ├── data_loader.py          # BigQuery cloud I/O
-│       ├── embeddings_cluster.py   # UMAP & HDBSCAN
-│       ├── sentiment_analysis.py   # HuggingFace RoBERTa
-│       └── nlp_pipeline.py         # Full NLP orchestration
+│   │   ├── 04_gold_nlp.sql         
+│   │   └── 05_gold_reporting.sql   # Unified View for BI
+│   ├── nlp/
+│   │   ├── data_loader.py          # BigQuery cloud I/O
+│   │   ├── embeddings_cluster.py   # UMAP & HDBSCAN
+│   │   ├── sentiment_analysis.py   # HuggingFace RoBERTa
+│   │   └── nlp_pipeline.py         # Full NLP orchestration
+│   └── visualization/
+│       └── plots.py                # Python Statistical Dashboards
 ├── notebook/
 │   └── control_notebook.ipynb      # Central control interface (Local + Colab)
 ├── data/                           # Ignored local raw/structured CSV files
@@ -162,6 +166,6 @@ A forensic Data Science investigation aimed at quantifying and analyzing the aut
 ```
 
 ## Deliverables
-Detailed forensics and extraction python scripts, BigQuery integrated Medallion tables, scalable multidimensional ML models (Embeddings, Clustering, Sentiment), and an analytical report detailing astroturfing narratives and behaviors.
+Detailed forensics and extraction python scripts, BigQuery integrated Medallion tables, scalable multidimensional ML models (Embeddings, Clustering, Sentiment), and a final interactive data visualization suite explicitly detailing astroturfing narratives and behaviors.
 
-**Skills Demonstrated:** Advanced NLP (Multilingual BERT, HDBSCAN, Sentiment), Cloud Data Engineering (GCP Medallion Architecture, BigQuery), Network Forensics, Behavioral Clustering, API Mining (Direct JSON extraction).
+**Skills Demonstrated:** Advanced NLP (Multilingual BERT, HDBSCAN, Sentiment), Cloud Data Engineering (GCP Medallion Architecture, BigQuery), Network Forensics, Behavioral Clustering, API Mining (Direct JSON extraction), Data Visualization (Seaborn, Wordclouds).
