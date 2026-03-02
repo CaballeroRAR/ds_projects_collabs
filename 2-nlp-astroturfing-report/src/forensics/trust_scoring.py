@@ -40,10 +40,3 @@ def calculate_trust_score(author_data: Dict[str, Any]) -> int:
     # Default for anything in between (e.g., 2 months old or new but high karma)
     return 30
 
-def batch_score_comments(comments: list) -> list:
-    """Applies the Trust Score to a list of processed comments."""
-    for comment in comments:
-        author = comment.get("author")
-        if author:
-            comment["trust_score"] = calculate_trust_score(author)
-    return comments
