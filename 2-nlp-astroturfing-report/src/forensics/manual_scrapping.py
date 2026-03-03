@@ -1,15 +1,15 @@
 import os
 import json
 import time
-import sys
+
 import requests
 from datetime import datetime
 from typing import List, Dict, Any
-from pathlib import Path
+
 from loguru import logger
 from src.forensics.trust_scoring import calculate_trust_score
-from src.infra.data_transformation import flatten_reddit_json
-from src.infra.gcp_ingestion import load_to_bigquery, get_bigquery_client, GCP_DATASET_ID
+
+from src.infra.gcp_ingestion import load_to_bigquery
 
 
 # Essential for Direct JSON Access: Use a unique/legit looking User-Agent to avoid 429 errors
@@ -167,7 +167,6 @@ def scrape_submission_url(url: str):
     sub_id = submission_info["id"]
     subreddit_name = submission_info["subreddit"]
 
-    author_cache = {}
     raw_comments = process_comments_raw(comment_listing)
     processed_comments = enrich_all_comments(raw_comments)
 

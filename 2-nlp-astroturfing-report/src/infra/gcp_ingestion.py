@@ -1,6 +1,6 @@
 import os
-import json
-from google.cloud import storage, bigquery
+
+from google.cloud import bigquery
 from dotenv import load_dotenv
 from loguru import logger
 from pathlib import Path
@@ -58,7 +58,7 @@ def sync_master_to_bigquery(master_csv: str = "data/structured/transformed_comme
 
     logger.info(f"Syncing Master CSV to BigQuery: {master_csv}")
     load_to_bigquery(master_csv, table_name="comments_structured", write_disposition="WRITE_TRUNCATE")
-    logger.success(f"Master CSV sync complete.")
+    logger.success("Master CSV sync complete.")
 
 def sync_local_to_cloud(raw_dir: str = "data/raw", structured_dir: str = "data/structured"):
     """

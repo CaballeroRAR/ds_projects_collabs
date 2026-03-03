@@ -176,7 +176,7 @@ def plot_trust_wordclouds(df: pd.DataFrame):
         "also", "something", "someone", "look", "take", "need"
     ])
     
-    fig, axes = plt.subplots(1, 2, figsize=(16, 8))
+    _, axes = plt.subplots(1, 2, figsize=(16, 8))
     
     if trusted_text.strip():
         wc_trusted = WordCloud(width=800, height=800, max_words=75, background_color='white', stopwords=custom_stopwords, colormap='Greens').generate(trusted_text)

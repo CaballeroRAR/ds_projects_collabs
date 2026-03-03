@@ -4,7 +4,7 @@ from google.cloud import bigquery
 from dotenv import load_dotenv
 from loguru import logger
 
-import sys
+
 load_dotenv()
 GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID")
 GCP_DATASET_ID = os.getenv("GCP_DATASET_ID", "reddit_scrap")
