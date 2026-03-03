@@ -18,13 +18,13 @@ graph TD
     H -->|Gold Profiles| I[(BigQuery: gold_author_profiles)]
     H -->|Gold NLP Input| J[(BigQuery: gold_nlp)]
     
-    J -->|Colab: Data Loader| K{NLP Pipeline}
-    K -->|Multilingual BERT| L[Embeddings & UMAP]
+    J -->|Vertex AI Workbench| K{NLP Pipeline}
+    K -->|BAAI/bge-m3| L[Embeddings & UMAP]
     L -->|HDBSCAN| M[Cluster Assignment]
     K -->|XLM-RoBERTa| N[Sentiment Analysis]
     M --> O[Results Consolidation]
     N --> O
-    O -->|Colab: Upload| P[(BigQuery: gold_nlp_results)]
+    O -->|Export| P[(BigQuery: gold_nlp_results)]
 ```
 
 ### Key Components
@@ -33,7 +33,7 @@ graph TD
 2. **Transformer (`src/infra/data_transformation.py`)**: Flattens nested Reddit reply trees and applies robust CSV formatting (quoting all fields) to cleanly handle complex, multi-line comment text.
 3. **Ingestion Engine (`src/infra/gcp_ingestion.py`)**: Seamlessly connects your local structured data to BigQuery using `google-cloud-bigquery`.
 4. **GCP Transformations (`src/infra/run_transformations.py`)**: Executes a Medallion Architecture (Bronze -> Silver -> Gold) inside BigQuery directly from the local environment.
-5. **NLP Pipeline (`src/nlp/nlp_pipeline.py`)**: Orchestrates the Phase 2 Colab workflow. Pulls from BigQuery, runs Multilingual BERT embeddings, UMAP dimensionality reduction, HDBSCAN clustering, and XLM-RoBERTa Sentiment Analysis.
+5. **NLP Pipeline (`src/nlp/nlp_pipeline.py`)**: Orchestrates the Phase 2 Vertex AI workflow. Pulls from BigQuery, runs `BAAI/bge-m3` embeddings, UMAP dimensionality reduction, HDBSCAN clustering, and XLM-RoBERTa Sentiment Analysis.
 
 ## Setup & Prerequisites
 
@@ -84,12 +84,14 @@ After your raw data is ingested into BigQuery as `comments_structured`, run the 
 python src/infra/run_transformations.py
 ```
 
-### 5. NLP Processing (Colab Mode)
+### 5. NLP Processing (Vertex AI Workbench)
 
-Phase 2 relies on GPU compute for heavy BERT models. To run this phase:
-1. Open `notebook/control_notebook.ipynb` inside **Google Colab**.
-2. Run the `Phase 3` cells at the bottom of the notebook. Colab will authenticate your GCP account, install requirements, and run the `nlp_pipeline.py`.
-3. The final clustered and sentiment-scored data will automatically be uploaded to BigQuery as `gold_nlp_results`.
+Phase 2 relies on computational power for heavy NLP models. To run this phase:
+1. Create a **Vertex AI Workbench** User-Managed Notebook instance in GCP (a CPU `e2-standard-8` or a GPU instance like `L4` or `T4`).
+2. Clone this repository into the workspace.
+3. Open `notebook/control_notebook.ipynb`.
+4. Run the setup cell (`!pip install -r requirements.txt` and `!pip install sentencepiece`).
+5. Run the `Phase 3` and `Phase 4` cells. The notebook will authenticate your GCP account, process the text, and upload the final grouped data to BigQuery as `gold_nlp_results`.
 
 ## Data Dictionary
 The `transformed_comments.csv` (and resulting `comments_structured` table in BigQuery) has the following schema:
