@@ -1,11 +1,11 @@
 google-cloud-bigquery
 google-cloud-storage
 loguru==0.7.3
-pandas==3.0.1
-protobuf==7.34.0
+pandas
+protobuf
 pyarrow
 python-dotenv==1.2.2
-Requests==2.32.5
+requests
 sentence-transformers
 transformers
 torch

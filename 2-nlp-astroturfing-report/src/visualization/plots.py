@@ -56,7 +56,7 @@ def plot_cluster_breakdown(df: pd.DataFrame):
     plt.xlabel("Narrative Identification", fontsize=12)
     plt.ylabel("Average Trust Score (0-100)", fontsize=12)
     plt.axhline(50, color='red', linestyle='--', label='Neutral Trust Baseline')
-    plt.xticks(rotation=45)
+    plt.xticks(rotation=0)
     
     plt.figtext(0.5, -0.1, 
                 "Interpretation:\n"
