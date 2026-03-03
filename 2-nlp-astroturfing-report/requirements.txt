@@ -12,3 +12,4 @@ torch
 umap-learn
 hdbscan
 db-dtypes
+sentencepiece 
