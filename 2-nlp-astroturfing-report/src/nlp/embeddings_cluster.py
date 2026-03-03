@@ -8,7 +8,8 @@ def generate_clusters(df: pd.DataFrame, text_col: str = "body") -> pd.DataFrame:
     """Generates embeddings, reduces dimensionality, and clusters the text."""
     logger.info("Loading multilingual embedding model...")
     # Capable of Spanish and English mapping to the same space
-    model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+    # model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2') # Changed to BGE
+    model = SentenceTransformer('BAAI/bge-m3')
     
     logger.info("Generating embeddings...")
     embeddings = model.encode(df[text_col].tolist(), show_progress_bar=True)

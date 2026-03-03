@@ -173,7 +173,10 @@ def plot_trust_wordclouds(df: pd.DataFrame):
         "en", "las", "un", "una", "por", "con", "para", "esto", "como", "esta",
         "pero", "te", "se", "del", "al", "mi", "me", "su", "ya", "es", "eso", "así",
         "just", "like", "get", "got", "can", "good", "thing", "way", "right", "now",
-        "also", "something", "someone", "look", "take", "need"
+        "also", "something", "someone", "look", "take", "need",
+        "hay", "muy", "nos", "o", "le", "qué", "sobre", "son", "sus", "ha", "sin", "les", "ni", "donde",
+        "pues", "mas", "más", "wey", "güey", "xd", "lol", "edit", "sub", "op", "cuando", "quien",
+        "porque", "why", "how", "what", "where", "when", "who", "which", "todo", "nada", "algo"
     ])
     
     _, axes = plt.subplots(1, 2, figsize=(16, 8))
@@ -213,9 +216,11 @@ def generate_all_plots(df: pd.DataFrame):
         "will", "would", "about", "their", "there", "which", "could", "should", "deleted", 
         "removed", "comment", "people", "really", "going", "think", "because", "just", 
         "like", "some", "them", "then", "than", "also", "into", "only", "other", "these",
-        "those", "much", "more", "even", "still", "well", "know", "want", "right",
+        "those", "much", "more", "even", "still", "well", "know", "want", "right", "how", "who", "why",
         # Some Spanish fillers
-        "como", "pero", "para", "esto", "esta", "este", "todo", "nada", "algo", "tiene", "puede"
+        "como", "pero", "para", "esto", "esta", "este", "todo", "nada", "algo", "tiene", "puede",
+        "pues", "mas", "más", "hay", "muy", "nos", "que", "los", "las", "del", "por", "con", "una",
+        "cuando", "quien", "porque", "sobre", "son", "sus", "sin", "donde"
     }
     
     cluster_mapping = {}
