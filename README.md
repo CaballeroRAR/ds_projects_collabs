@@ -126,9 +126,9 @@ A forensic Data Science investigation aimed at quantifying and analyzing the aut
   - **Gold:** Aggregates data by author profiles (`gold_author_profiles`) and formats clean data for NLP (`gold_nlp`).
 
 ### Deep NLP Processing & Reporting (Phase 3 & 4)
-- Orchestrated heavy ML operations out-of-core using mapped Google Colab Notebooks with GPU processing.
+- Orchestrated heavy ML operations out-of-core using mapped Google Cloud Vertex AI Workbench Notebooks with GPU processing.
 - Pulled the `gold_nlp` tables back from BigQuery.
-- Used `paraphrase-multilingual-MiniLM-L12-v2` (BERT) to embed Spanish/English comments.
+- Used `BAAI/bge-m3` to embed Spanish/English comments into a dense multidimensional semantic space.
 - Mapped comments to clustered narrative structures using `UMAP` dimensionality reduction and `HDBSCAN` density-based clustering.
 - Evaluated emotional trajectory with Multilingual `XLM-RoBERTa` for sentiment tracking.
 - Synced the unified `gold_nlp_results` dataframe back to BigQuery with their assigned cluster IDs and sentiment probabilities.
@@ -159,7 +159,7 @@ A forensic Data Science investigation aimed at quantifying and analyzing the aut
 │   └── visualization/
 │       └── plots.py                # Python Statistical Dashboards
 ├── notebook/
-│   └── control_notebook.ipynb      # Central control interface (Local + Colab)
+│   └── control_notebook.ipynb      # Central control interface (Vertex AI Workbench)
 ├── data/                           # Ignored local raw/structured CSV files
 ├── requirements.txt
 └── README.md
@@ -168,4 +168,4 @@ A forensic Data Science investigation aimed at quantifying and analyzing the aut
 ## Deliverables
 Detailed forensics and extraction python scripts, BigQuery integrated Medallion tables, scalable multidimensional ML models (Embeddings, Clustering, Sentiment), and a final interactive data visualization suite explicitly detailing astroturfing narratives and behaviors.
 
-**Skills Demonstrated:** Advanced NLP (Multilingual BERT, HDBSCAN, Sentiment), Cloud Data Engineering (GCP Medallion Architecture, BigQuery), Network Forensics, Behavioral Clustering, API Mining (Direct JSON extraction), Data Visualization (Seaborn, Wordclouds).
+**Skills Demonstrated:** Advanced NLP (BGE-M3, HDBSCAN, XLM-RoBERTa), Cloud Data Engineering (GCP Medallion Architecture, BigQuery), Network Forensics, Behavioral Clustering, API Mining (Direct JSON extraction), Data Visualization (Seaborn, Wordclouds).
